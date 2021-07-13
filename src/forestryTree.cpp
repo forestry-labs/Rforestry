@@ -1268,7 +1268,7 @@ void forestryTree::getOOGIndex(
       ++it_
   ) {
     // If the group the current observation is in isn't included in the tree,
-    // we ad that observation to the Out of Group index set
+    // we add that observation to the Out of Group index set
     if (in_sample_groups.find(groupMemberships[*it_]) == in_sample_groups.end()) {
       outputOOBIndex.push_back(*it_);
     }

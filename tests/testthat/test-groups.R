@@ -25,10 +25,7 @@ test_that("Tests if groups argument works works", {
   # standard OOB predictions
   expect_equal(all.equal(sort(which(is.nan(preds))), indices), TRUE)
 
-  group_vec = as.factor(c(rep(1,5), rep(2,5),
-                          rep(3,5), rep(4,5),
-                          rep(5,5), rep(6,5),
-                          rep(7,5), rep(8,5)))
+  group_vec = as.factor(rep(1:8, each = 5))
 
   set.seed(2332)
   rf <- forestry(
