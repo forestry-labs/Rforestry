@@ -241,6 +241,9 @@ training_data_checker <- function(x,
     if (length(levels(groups)) == 1) {
       stop("groups must have more than 1 level to be left out from sampling")
     }
+    if (length(groups) != nrow(x)) {
+      stop("Length of groups must equal the number of observations")
+    }
   }
 
   if (OOBhonest && (splitratio != 1)) {
