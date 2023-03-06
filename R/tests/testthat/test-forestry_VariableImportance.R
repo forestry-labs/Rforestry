@@ -7,14 +7,14 @@ test_that("Tests if variable importance works", {
   y <- iris[, 1]
 
   # Test forestry (mimic RF)
-  forest <- forestry(x, y, ntree = 1000, nthread = 1)
+  forest <- forestry(x, y, ntree = 1000, nthread = 1, seed = 1)
 
-  vi <- getVI(forest)
+  vi <- getVI(forest, seed=1)
 
   ### This is non-deterministic because the seed is not passed.
   expect_equal(
-    unlist(vi),
-    c(0.218073688508096, 1.21796168072043,
-      0.536307185530931, 0.468263916283163),
+    (vi),
+    c(0.141523345265, 0.747180382872,
+      0.410477571776, 0.423280918055),
     tolerance = 0.1)
 })

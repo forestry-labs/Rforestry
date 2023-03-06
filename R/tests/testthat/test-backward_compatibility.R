@@ -38,29 +38,4 @@ test_that("Tests that backward compatibility", {
   y_pred_new <- predict(forest_new, x)
 
   expect_equal(y_pred_new, y_pred_old, tolerance = 1e-5)
-
-  # ----------------------------------------------------------------------------
-  context("Backward compatibility: autohonest_RF")
-  set.seed(24750371)
-  tuned_forest_old <- autohonestRF(
-    x = x,
-    y = y,
-    num_iter = 9,
-    eta = 3,
-    nthread = 2
-  )
-
-  set.seed(24750371)
-  tuned_forest_new <- autoforestry(
-    x = x,
-    y = y,
-    num_iter = 9,
-    eta = 3,
-    nthread = 2
-  )
-
-  y_pred_old <- predict(tuned_forest_old, x)
-  y_pred_new <- predict(tuned_forest_new, x)
-
-  expect_equal(y_pred_new, y_pred_old, tolerance = 1e-12)
 })

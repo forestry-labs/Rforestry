@@ -5,7 +5,15 @@
 \alias{compute_lp}
 \title{compute lp distances}
 \usage{
-compute_lp(object, newdata, feature, p)
+compute_lp(
+  object,
+  newdata,
+  feature,
+  p,
+  scale = FALSE,
+  aggregation = "average",
+  trainingIdx = NULL
+)
 }
 \arguments{
 \item{object}{A `forestry` object.}
@@ -15,6 +23,22 @@ compute_lp(object, newdata, feature, p)
 \item{feature}{A string denoting the dimension for computing lp distances.}
 
 \item{p}{A positive real number determining the norm p-norm used.}
+
+\item{scale}{A boolean indicating whether or not we want to center + scale
+the features (based on the mean and sd of the training data) before calculating
+the L_p norm. This is useful for computing the detachment index, but can be
+less useful when we need to interpret the L_p distances.}
+
+\item{aggregation}{The aggregation used when the weightMatrix is calculated.
+This can be useful for calculating the lp distances on observations in
+the training data. This must be one of `average`, `oob`, or `doubleOOB`.
+When newdata has fewer rows than the training data, one must also pass
+the vector of training indices corresponding to the indices of the observations
+in the original data set. Default is `average`.}
+
+\item{trainingIdx}{This is an optional parameter that must be set when
+aggregation is set to `oob` or `doubleOOB` and the newdata is not the same
+size as the training data.}
 }
 \value{
 A vector of the lp distances.

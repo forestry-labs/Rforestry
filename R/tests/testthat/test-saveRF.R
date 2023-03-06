@@ -27,7 +27,7 @@ test_that("Tests that saving RF and laoding it works", {
   )
 
 
-  testthat::expect_equal(forest@processed_dta$y[2], -1.139200483464953395085)
+  testthat::expect_equal(forest@processed_dta$y[2], 4.9)
   # Check that saving the forest works well.
   testthat::expect_length(CppToR_translator(forest@forest)[[3]]$var_id[1:5],
                           5)

@@ -1,7 +1,7 @@
 context("Deep splitting")
 
 test_that('Deep splitting obeys variable selection restrictions', {
-  skip("Skip for now until we fix plotting")
+
   set.seed(1)
   n <- 100
   p <- 4
@@ -29,7 +29,6 @@ test_that('Deep splitting obeys variable selection restrictions', {
 
 
 test_that("Test that deep splitting has finite run time when mtry > number of non zero entries in featureWeights", {
-  skip("Skip for now until we fix plotting")
   set.seed(1)
   n <- 100
   p <- 4

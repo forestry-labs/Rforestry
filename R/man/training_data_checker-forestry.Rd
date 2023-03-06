@@ -30,9 +30,9 @@ training_data_checker(
   deepFeatureWeights,
   observationWeights,
   linear,
-  symmetric,
   scale,
-  hasNas
+  hasNas,
+  naDirection
 )
 }
 \arguments{
@@ -141,20 +141,17 @@ This option is not allowed when sampling is done without replacement.}
 functions in the leaf nodes. This is recommended for data with linear outcomes.
 For implementation details, see: https://arxiv.org/abs/1906.06463. Default is FALSE.}
 
-\item{symmetric}{Used for the experimental feature which imposes strict symmetric
-marginal structure on the predictions of the forest through only selecting
-symmetric splits with symmetric aggregation functions. Should be a vector of size ncol(x) with a single
-1 entry denoting the feature to enforce symmetry on. Defaults to all zeroes.
-For version >= 0.9.0.83, we experimentally allow more than one feature to
-enforce symmetry at a time. This should only be used for a small number of
-features as it has a runtime that is exponential in the number of symmetric
-features (O(N 2^|S|) where S is the set of symmetric features).}
-
 \item{scale}{A parameter which indicates whether or not we want to scale and center
 the covariates and outcome before doing the regression. This can help with
 stability, so by default is TRUE.}
 
 \item{hasNas}{indicates if there is any missingness in x.}
+
+\item{naDirection}{Sets a default direction for missing values in each split
+node during training. It test placing all missing values to the left and
+right, then selects the direction that minimizes loss. If no missing values
+exist, then a default direction is randomly selected in proportion to the
+distribution of observations on the left and right. (Default = FALSE)}
 }
 \value{
 A list of parameters after checking the selected parameters are valid.

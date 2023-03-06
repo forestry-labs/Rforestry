@@ -9,6 +9,8 @@
   object,
   newdata = NULL,
   aggregation = "average",
+  holdOutIdx = NULL,
+  trainingIdx = NULL,
   seed = as.integer(runif(1) * 10000),
   nthread = 0,
   exact = NULL,
@@ -50,6 +52,35 @@ nor averaging example).
 functions have been used. This returns the linear coefficients for each
 linear feature which were used in the leaf node regression of each predicted
 point.}
+
+\item{holdOutIdx}{This is an optional argument, containing a vector of indices
+from the training data set that should be not be allowed to influence the
+predictions of the forest. When a vector of indices of training observations are
+given, the predictions will be made only with trees in the forest that
+do not contain any of these indices in either the splitting or averaging sets.
+This cannot be used at the same time as any other aggregation options.
+If `weightMatrix = TRUE`, this will return the
+weightMatrix corresponding to the predictions made with trees respecting
+holdOutIdx. If there are no trees that have held out all of the indices
+in holdOutIdx, then the predictions will return NaN.}
+
+\item{trainingIdx}{This is an optional parameter to give the indices of the observations
+in `newdata` from the training data set. This is used when we want to run predict on
+only a subset of observations from the training data set and use `aggregation = "oob"` or
+`aggregation = "doubleOOB"`. For example, at the tree level, a tree make out of
+bag (`aggregation = "oob"`) predictions for the indices in the set
+setdiff(trainingIdx,tree$averagingIndices) and will make double out-of-bag
+predictions for the indices in the set
+setdiff(trainingIdx,union(tree$averagingIndices,tree$splittingIndices).
+Note, this parameter must be set when predict is called with an out-of-bag
+aggregation option on a data set not matching the original training data size.
+The order of indices in `trainingIdx` also needs to match the order of observations
+in newdata. So for an arbitrary index set `trainingIdx` and dataframe `newdata`,
+ of the same size as the training set, the predictions from `predict(rf, newdata[trainingIdx,],`
+`aggregation = "oob", trainingIdx = trainingIdx)` should match the
+predictions of to `predict(rf, newdata, aggregation = "oob")[trainingIdx]`.
+This option also works with the `weightMatrix` option and will return the
+(smaller) weightMatrix for the observations in the passed data frame.}
 
 \item{seed}{random seed}
 

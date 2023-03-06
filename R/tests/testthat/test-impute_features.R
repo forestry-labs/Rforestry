@@ -19,8 +19,8 @@ test_that("Tests if imputation for features works", {
 
   forest <- forestry(x_with_miss, y, ntree = 500, seed = 2, nthread = 1,scale=FALSE)
   imputed_x <- impute_features(forest, x_with_miss, seed = 2)
-  # expect_equal(sum(imputed_x$Species != x$Species), 4)
-  # expect_equal(mean(abs(x$Sepal.Width - imputed_x$Sepal.Width)), 0.0713560291121, tolerance = 1e-6)
+  expect_equal(sum(imputed_x$Species != x$Species), 3)
+  expect_equal(mean(abs(x$Sepal.Width - imputed_x$Sepal.Width)), 0.07323832333129121, tolerance = 1e-6)
 
   # Testing mean imputation fallback:
   set.seed(1)
@@ -32,8 +32,8 @@ test_that("Tests if imputation for features works", {
 
   forest <- forestry(x_with_miss, y, ntree = 2, seed = 2, nthread = 1,scale=FALSE)
   imputed_x <- impute_features(forest, x_with_miss, seed = 2, use_mean_imputation_fallback = TRUE)
-  # expect_equal(sum(imputed_x$Species != x$Species), 20)
-  # expect_equal(mean(abs(x$Sepal.Width - imputed_x$Sepal.Width)), 0.264541353436, tolerance = 1e-6)
+  expect_equal(sum(imputed_x$Species != x$Species), 14)
+  expect_equal(mean(abs(x$Sepal.Width - imputed_x$Sepal.Width)), 0.2622184827976947, tolerance = 1e-6)
 
 
 })

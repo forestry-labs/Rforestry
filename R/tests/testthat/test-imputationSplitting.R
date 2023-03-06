@@ -12,6 +12,7 @@ test_that("Tests if imputation splitting works", {
                  y = y,
                  nthread = 2,
                  seed=239,
+                 scale=FALSE,
                  ntree = 500)
 
   pred <- predict(rf, x)

@@ -1,4 +1,6 @@
 #' @include forestry.R
+#' @importFrom stats predict
+NULL
 
 # ---plots a tree ----------------------------------------------------------
 #' plot
@@ -21,19 +23,9 @@
 #'                y = iris[, 1],
 #'                nthread = 2)
 #'
-#'
-#' ridge_rf <- forestry(
-#'   x = iris[,-1],
-#'   y = iris[, 1],
-#'   replace = FALSE,
-#'   nodesizeStrictSpl = 10,
-#'   mtry = 4,
-#'   ntree = 1000,
-#'   minSplitGain = .004,
-#'   linear = TRUE,
-#'   nthread = 2,
-#'   overfitPenalty = 1.65,
-#'   linFeats = 1:2)
+#' plot(x = rf)
+#' plot(x = rf, tree.id = 2)
+#' plot(x = rf, tree.id = 500)
 #'
 #'
 #' @export
@@ -52,12 +44,11 @@ plot.forestry <- function(x, tree.id = 1, print.meta_dta = FALSE,
   feat_names <- colnames(forestry_tree@processed_dta$processed_x)
   split_feat <- forestry_tree@R_forest[[tree.id]]$var_id
   split_val <- forestry_tree@R_forest[[tree.id]]$split_val
+  node_values <- forestry_tree@R_forest[[tree.id]]$weights
 
   # get info for the first node ------------------------------------------------
   root_is_leaf <- split_feat[1] < 0
-  first_val <- ifelse(scale,
-                      split_val[1]*ifelse(forestry_tree@colSd[split_feat[1]] == 0,1,forestry_tree@colSd[split_feat[1]]) + forestry_tree@colMeans[split_feat[1]],
-                      split_val[1])
+  first_val <- split_val[1]
   node_info <- data.frame(
     node_id = 1,
     is_leaf = root_is_leaf,
@@ -68,6 +59,7 @@ plot.forestry <- function(x, tree.id = 1, print.meta_dta = FALSE,
     split_val = ifelse(root_is_leaf, NA, first_val),
     num_splitting = ifelse(root_is_leaf, -split_feat[2], 0),
     num_averaging = ifelse(root_is_leaf, -split_feat[1], 0),
+    value = 0.0,
     level = 1)
   if (root_is_leaf) {
     split_feat <- split_feat[-(1:2)]
@@ -101,10 +93,10 @@ plot.forestry <- function(x, tree.id = 1, print.meta_dta = FALSE,
           left_child = nrow(node_info) + 2,
           right_child = NA,
           split_feat = split_feat[1],
-          split_val = ifelse(scale, split_val[1]*ifelse(forestry_tree@colSd[split_feat[1]] == 0, 1,forestry_tree@colSd[split_feat[1]]) + forestry_tree@colMeans[split_feat[1]]
-                                  , split_val[1]),
+          split_val = split_val[1],
           num_splitting = 0,
           num_averaging = 0,
+          value = 0.0,
           level = node_info$level[parent] + 1
         )
       )
@@ -124,9 +116,11 @@ plot.forestry <- function(x, tree.id = 1, print.meta_dta = FALSE,
           split_val = NA,
           num_splitting = -split_feat[2],
           num_averaging = -split_feat[1],
+          value = node_values[1],
           level = node_info$level[parent] + 1
         )
       )
+      node_values <- node_values[-1]
       split_feat <- split_feat[-(1:2)]
       split_val <- split_val[-1]
     }
@@ -167,20 +161,6 @@ plot.forestry <- function(x, tree.id = 1, print.meta_dta = FALSE,
             node_info$split_val[nodes_with_this_split]])
       }
     }
-  }
-
-
-  # get the observation ids per leaf -------------------------------------------
-  ave_idx <- forestry_tree@R_forest[[tree.id]]$leafAveidx
-
-  leaf_idx <- list()
-  for (leaf_id in node_info$node_id[node_info$is_leaf]) {
-    # leaf_id <- 4
-
-    these_idces <- 1:(node_info$num_averaging[node_info$node_id == leaf_id])
-
-    leaf_idx[[leaf_id]] <- ave_idx[these_idces]
-    ave_idx <- ave_idx[-these_idces]
   }
 
   # Prepare data for VisNetwork ------------------------------------------------
@@ -237,46 +217,53 @@ plot.forestry <- function(x, tree.id = 1, print.meta_dta = FALSE,
 
 
   if (forestry_tree@linear) {
+    plm = this_ds = y_leaf_unique = NULL
     # ridge forest
     for (leaf_id in node_info$node_id[node_info$is_leaf]) {
       # leaf_id = 5
       ###
-      this_ds <- dta_x[leaf_idx[[leaf_id]],
-                       forestry_tree@linFeats + 1]
+      #this_ds <- dta_x[leaf_idx[[leaf_id]],
+      #                 forestry_tree@linFeats + 1]
       encoder <- onehot::onehot(this_ds)
       remat <- predict(encoder, this_ds)
       ###
-      y_leaf <- dta_y[leaf_idx[[leaf_id]]]
+      #y_leaf <- dta_y[leaf_idx[[leaf_id]]]
 
       # handle single unique value y_leaf otherwise glmnet fails
-      y_leaf_unique <- unique(y_leaf)
-      plm_pred_names <- c("interc", colnames(remat))
+      #y_leaf_unique <- unique(y_leaf)
+      #plm_pred_names <- c("interc", colnames(remat))
 
       return_char <- character()
       dev.ratio <- 1
 
       if(length(y_leaf_unique) == 1) {
-        return_char = paste0(substr(plm_pred_names[1], 1, beta.char.len), " ", round(y_leaf_unique, 2), "<br>")
+        #return_char = paste0(substr(plm_pred_names[1], 1, beta.char.len), " ", round(y_leaf_unique, 2), "<br>")
         dev.ratio <- 1
       } else {
-        plm <- glmnet::glmnet(x = remat,
-                              y = y_leaf,
-                              lambda = forestry_tree@overfitPenalty * sd(y_leaf)/nrow(remat),
-                              alpha	= 0)
+        #plm <- glmnet::glmnet(x = remat,
+        #                      y = y_leaf,
+        #                      lambda = forestry_tree@overfitPenalty * sd(y_leaf)/nrow(remat),
+        #                      alpha	= 0)
 
-        plm_pred <- predict(plm, type = "coef")
+        #plm_pred <- predict(plm, type = "coef")
 
 
 
-        for (i in 1:length(plm_pred)) {
-          return_char <- paste0(return_char,
-                                substr(plm_pred_names[i], 1, beta.char.len), " ",
-                                round(plm_pred[i], 2), "<br>")
-        }
+        #for (i in 1:length(plm_pred)) {
+        #  return_char <- paste0(return_char,
+        #                        substr(plm_pred_names[i], 1, beta.char.len), " ",
+        #                        round(plm_pred[i], 2), "<br>")
+        #}
 
         dev.ratio <- plm$dev.ratio
       }
 
+
+      node_weight = node_info$value[leaf_id]
+      if (scale) {
+        node_weight = node_weight * forestry_tree@colSd[length(forestry_tree@colSd)] +
+          forestry_tree@colMeans[length(forestry_tree@colMeans)]
+      }
 
       nodes$title[leaf_id] <- paste0(nodes$label[leaf_id],
                                      "<br> R2 = ",
@@ -287,16 +274,18 @@ plot.forestry <- function(x, tree.id = 1, print.meta_dta = FALSE,
                                      "\n R2 = ",
                                      round(dev.ratio, 3),
                                      "\n=======\nm = ",
-                                     round(mean(dta_y[leaf_idx[[leaf_id]]]), 5))
+                                     round(node_weight, 5))
     }
   } else {
     # not ridge forest
     for (leaf_id in node_info$node_id[node_info$is_leaf]) {
-      node_weight = ifelse(scale,
-                           round(mean(dta_y[leaf_idx[[leaf_id]]])*forestry_tree@colSd[length(forestry_tree@colSd)] + forestry_tree@colMeans[length(forestry_tree@colMeans)],5),
-                           round(mean(dta_y[leaf_idx[[leaf_id]]]),5))
+      node_weight = node_info$value[leaf_id]
+      if (scale) {
+        node_weight = node_weight * forestry_tree@colSd[length(forestry_tree@colSd)] +
+          forestry_tree@colMeans[length(forestry_tree@colMeans)]
+      }
       nodes$label[leaf_id] <- paste0(nodes$label[leaf_id], "\n=======\nm = ",
-                                     node_weight)
+                                     round(node_weight,5))
     }
   }
 

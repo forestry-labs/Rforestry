@@ -3,7 +3,7 @@ test_that("Tests that terminal nodes are correct", {
   y <- iris[, 1]
 
   context('Terminal nodes')
-  # Set seed for reproductivity
+  # Set seed for reproducibility
   set.seed(24750371)
 
   # Test forestry (mimic RF)
@@ -21,5 +21,5 @@ test_that("Tests that terminal nodes are correct", {
 
   # Test predict
   full_predictions <- predict(forest, x[c(5, 100, 104),], aggregation = 'terminalNodes')$terminalNodes
-  expect_equal(full_predictions, matrix(c(3,9,19,23), ncol = 1))
+  expect_equal(full_predictions, matrix(c(1, 8, 15, 23), ncol = 1))
 })

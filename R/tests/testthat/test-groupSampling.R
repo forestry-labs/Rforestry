@@ -1,105 +1,216 @@
 test_that("Tests sampling with groups", {
-  context('Test leaving out groups on a small dataset ')
 
+  # Helper function to check the validity of group out sampling + honesty
+  # basically need 1 group out and the others partitioned into averaging + splitting
+  check_validity_gout_sampling <- function(
+    rf,
+    tree_id,
+    g_list
+  ) {
+    # Check that one fold is completely left out
+    g_out <- lapply(g_list, function(x) {return(length(intersect(union(
+      rf@R_forest[[tree_id]]$splittingSampleIndex,
+      rf@R_forest[[tree_id]]$averagingSampleIndex),x))==0) })
 
-  x <- iris[,-1]
-  y <- iris[,1]
+    any_g_out <- any(unlist(g_out))
 
-  # Use the species as the group
-  rf <- forestry(x = x,
-                 y = y,
-                 groups = iris$Species,
-                 ntree = 500,
-                 minTreesPerGroup = 1)
+    avg_g <- lapply(g_list, function(x) {return(length(intersect(
+      rf@R_forest[[tree_id]]$averagingSampleIndex,x))!=0) })
+    spl_g <- lapply(g_list, function(x) {return(length(intersect(
+      rf@R_forest[[tree_id]]$splittingSampleIndex,x))!=0) })
 
-  rf <- make_savable(rf)
+    out <- data.frame(r1 = as.numeric(g_out),
+                      r2 = as.numeric(avg_g),
+                      r3 = as.numeric(spl_g))
 
-  # Test that a tree has been grown leaving out each species
-  # Note that because we sort by seed after training the forest
-  # so the first trees in R_forest have left out the last group etc
-  idx1 <- rf@R_forest[[498]]$splittingSampleIndex
-  expect_equal(all(!((101:150) %in% idx1)), TRUE)
+    return(all(rowSums(out) <= 1))
+  }
 
-  idx2 <- rf@R_forest[[499]]$splittingSampleIndex
-  expect_equal(all(!((51:100) %in% idx2)), TRUE)
+  test_fold_left_out <- function(
+    rf,
+    tree_id,
+    g_list,
+    foldSize
+  ) {
+    # Check that one fold is completely left out
+    g_out <- lapply(g_list, function(x) {return(length(intersect(union(
+      rf@R_forest[[tree_id]]$splittingSampleIndex,
+      rf@R_forest[[tree_id]]$averagingSampleIndex),x))==0) })
 
-  idx3 <- rf@R_forest[[500]]$splittingSampleIndex
-  expect_equal(all(!((1:50) %in% idx3)), TRUE)
+    # Check that at least foldSize groups are left out
+    return(length(which(unlist(g_out))) >= foldSize)
+  }
 
+  # Helper function for checking that the averaging and splitting groups
+  # are disjoint
+  check_avg_spl_groups_disjoint <- function(
+    rf,
+    tree_id,
+    g_list
+  ) {
 
-  # Use the species as the group + 10 trees
-  rf <- forestry(x = x,
-                 y = y,
-                 groups = iris$Species,
-                 ntree = 30,
-                 minTreesPerGroup = 10)
+    avg_g <- lapply(g_list, function(x) {return(length(intersect(
+      rf@R_forest[[tree_id]]$averagingSampleIndex,x))!=0) })
+    spl_g <- lapply(g_list, function(x) {return(length(intersect(
+      rf@R_forest[[tree_id]]$splittingSampleIndex,x))!=0) })
 
-  rf <- make_savable(rf)
-
-
-  expect_equal(length(rf@R_forest), 30)
-
-  for ( i in 1:30) {
-    idx <- rf@R_forest[[i]]$splittingSampleIndex
-
-    if (i %in% 1:10) {
-      expect_equal(all(!((101:150) %in% idx)), TRUE)
-    } else if (i %in% 11:20) {
-      expect_equal(all(!((51:100) %in% idx)), TRUE)
-    } else {
-      expect_equal(all(!((1:50) %in% idx)), TRUE)
-    }
+    out <- data.frame(r2 = as.numeric(avg_g),
+                      r3 = as.numeric(spl_g))
+    return(all(rowSums(out) <= 1))
   }
 
 
-  # Test when using honesty, this holds for the averaging and splitting sets
-  rf <- forestry(x = x,
-                 y = y,
-                 groups = iris$Species,
-                 minTreesPerGroup = 1,
-                 ntree=3,
-                 OOBhonest = TRUE)
+  # Test sampling with groups and honesty
+  context("Test sampling with groups and honesty and minTreesPerFold > 0")
 
+  rf <- forestry(x = iris[,-1],
+                 y = iris[,1],
+                 groups = iris$Species,
+                 foldSize = 1,
+                 ntree = 30,
+                 minTreesPerFold = 10,
+                 splitratio = .632,
+                 seed = 123123
+  )
   rf <- make_savable(rf)
 
-  spl_idx1 <- rf@R_forest[[1]]$splittingSampleIndex
-  avg_idx1 <- rf@R_forest[[1]]$averagingSampleIndex
-  expect_equal(all(!((101:150) %in% spl_idx1)), TRUE)
-  expect_equal(all(!((101:150) %in% avg_idx1)), TRUE)
 
-  expect_equal(length(intersect(spl_idx1,avg_idx1)), 0)
+  for (tree_idx in 1:rf@ntree) {
+    g_list = list(1:50,51:100,101:150)
 
-  spl_idx2 <- rf@R_forest[[2]]$splittingSampleIndex
-  avg_idx2 <- rf@R_forest[[2]]$averagingSampleIndex
-  expect_equal(all(!((51:100) %in% spl_idx2)), TRUE)
-  expect_equal(all(!((51:100) %in% avg_idx2)), TRUE)
+    c1 <- check_avg_spl_groups_disjoint(rf = rf,
+                                  tree_id = tree_idx,
+                                  g_list = g_list)
+    c2 <- check_validity_gout_sampling(rf = rf,
+                                  tree_id = tree_idx,
+                                  g_list = g_list)
 
-  expect_equal(length(intersect(spl_idx2,avg_idx2)), 0)
+    expect_equal(c2, TRUE)
+    expect_equal(c1, TRUE)
+  }
 
-  spl_idx3 <- rf@R_forest[[3]]$splittingSampleIndex
-  avg_idx3 <- rf@R_forest[[3]]$averagingSampleIndex
-  expect_equal(all(!((1:50) %in% spl_idx3)), TRUE)
-  expect_equal(all(!((1:50) %in% avg_idx3)), TRUE)
-
-  expect_equal(length(intersect(spl_idx3,avg_idx3)), 0)
-
-  context("Test that ntree parameter is specified correctly")
-
-  # Test that the forest ntree parameter is equal to max(minTreesPerGroup * |groups|, ntree)
-  rf <- forestry(x = x,
-                 y = y,
+  rf2 <- forestry(x = iris[,-1],
+                 y = iris[,1],
+                 groups = as.factor(sapply(1:10, function(x) return(rep(x,15)))),
+                 foldSize = 1,
                  ntree = 100,
-                 minTreesPerGroup = 10,
-                 groups = iris$Species)
+                 minTreesPerFold = 10,
+                 splitratio = .632,
+                 seed = 123123
+  )
+  rf2 <- make_savable(rf2)
 
-  expect_equal(rf@ntree, 100)
 
-  rf <- forestry(x = x,
-                 y = y,
-                 ntree = 10,
-                 minTreesPerGroup = 10,
-                 groups = iris$Species)
+  for (tree_idx in 1:rf2@ntree) {
+    g_list = lapply(as.list(1:10), function(x){return(which(sapply(1:10, function(x) return(rep(x,15))) == x))})
 
-  expect_equal(rf@ntree, 30)
+    c1 <- check_avg_spl_groups_disjoint(rf = rf2,
+                                        tree_id = tree_idx,
+                                        g_list = g_list)
+
+    c2 <- check_validity_gout_sampling(rf = rf2,
+                                       tree_id = tree_idx,
+                                       g_list = g_list)
+    expect_equal(c2, TRUE)
+    expect_equal(c1, TRUE)
+  }
+
+  context("Test group sampling with no minTreesPerFold")
+
+  rf3 <- forestry(x = iris[,-1],
+                  y = iris[,1],
+                  groups = as.factor(sapply(1:10, function(x) return(rep(x,15)))),
+                  foldSize = 1,
+                  ntree = 50,
+                  splitratio = .632,
+                  seed = 123123
+  )
+  rf3 <- make_savable(rf3)
+
+  for (tree_idx in 1:rf3@ntree) {
+    g_list = lapply(as.list(1:10), function(x){return(which(sapply(1:10, function(x) return(rep(x,15))) == x))})
+
+    c1 <- check_avg_spl_groups_disjoint(rf = rf3,
+                                        tree_id = tree_idx,
+                                        g_list = g_list)
+
+    expect_equal(c1, TRUE)
+  }
+
+  rf3 <- forestry(x = iris[,-1],
+                  y = iris[,1],
+                  groups = as.factor(sapply(1:10, function(x) return(rep(x,15)))),
+                  foldSize = 3,
+                  ntree = 50,
+                  splitratio = .632,
+                  seed = 123123
+  )
+  rf3 <- make_savable(rf3)
+
+  for (tree_idx in 1:rf3@ntree) {
+    g_list = lapply(as.list(1:10), function(x){return(which(sapply(1:10, function(x) return(rep(x,15))) == x))})
+
+    c1 <- check_avg_spl_groups_disjoint(rf = rf3,
+                                        tree_id = tree_idx,
+                                        g_list = g_list)
+
+    expect_equal(c1, TRUE)
+  }
+
+  context("Test different foldSizes + honesty")
+
+  rf4 <- forestry(x = iris[,-1],
+                  y = iris[,1],
+                  groups = as.factor(sapply(1:10, function(x) return(rep(x,15)))),
+                  foldSize = 2,
+                  ntree = 50,
+                  minTreesPerFold = 10,
+                  splitratio = .632,
+                  seed = 123123
+  )
+  rf4 <- make_savable(rf4)
+
+  for (tree_idx in 1:rf4@ntree) {
+    g_list = lapply(as.list(1:10), function(x){return(which(sapply(1:10, function(x) return(rep(x,15))) == x))})
+
+    c1 <- check_avg_spl_groups_disjoint(rf = rf4,
+                                        tree_id = tree_idx,
+                                        g_list = g_list)
+
+    c2 <- test_fold_left_out(rf = rf4,
+                             tree_id = tree_idx,
+                             g_list = g_list,
+                             foldSize = 2)
+
+    expect_equal(c1, TRUE)
+    expect_equal(c2, TRUE)
+  }
+
+  rf5 <- forestry(x = iris[,-1],
+                  y = iris[,1],
+                  groups = as.factor(sapply(1:15, function(x) return(rep(x,10)))),
+                  foldSize = 5,
+                  ntree = 30,
+                  minTreesPerFold = 10,
+                  OOBhonest = TRUE,
+                  seed = 123123
+  )
+  rf5 <- make_savable(rf5)
+
+  for (tree_idx in 1:rf5@ntree) {
+    g_list = lapply(as.list(1:15), function(x){return(which(sapply(1:15, function(x) return(rep(x,10))) == x))})
+
+    c1 <- check_avg_spl_groups_disjoint(rf = rf5,
+                                        tree_id = tree_idx,
+                                        g_list = g_list)
+
+    c2 <- test_fold_left_out(rf = rf5,
+                             tree_id = tree_idx,
+                             g_list = g_list,
+                             foldSize = 5)
+
+    expect_equal(c1, TRUE)
+    expect_equal(c2, TRUE)
+  }
 
 })

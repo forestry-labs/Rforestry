@@ -2,7 +2,7 @@ test_that("Tests the weightMatrix flag for various aggregation types", {
   x <- iris[, -1]
   y <- iris[, 1]
   context('weightMatrix + averaging aggregation predictions')
-  # Set seed for reproductivity
+  # Set seed for reproducibility
   set.seed(24750371)
 
   # Test forestry (mimic RF)
@@ -46,7 +46,7 @@ test_that("Tests the weightMatrix flag for various aggregation types", {
 
   # Get OOB predictions + weightMatrix
   preds_oobw <- predict(forest, newdata = x, aggregation = "oob", weightMatrix = TRUE)
-  expect_equal(names(preds_oobw), c("predictions","weightMatrix"))
+  expect_equal(names(preds_oobw), c("predictions","weightMatrix","treeCounts"))
 
   # Make sure we are getting the same predictions
   expect_equal( all.equal(
@@ -61,7 +61,7 @@ test_that("Tests the weightMatrix flag for various aggregation types", {
 
   # Get preds + weightMatrix
   preds_doublew <- predict(forest, newdata = x, weightMatrix = TRUE, aggregation = "doubleOOB")
-  expect_equal(names(preds_doublew), c("predictions","weightMatrix"))
+  expect_equal(names(preds_doublew), c("predictions","weightMatrix","treeCounts"))
 
   # Make sure we are getting the same predictions
   expect_equal( all.equal(

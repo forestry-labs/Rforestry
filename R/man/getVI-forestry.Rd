@@ -4,12 +4,15 @@
 \alias{getVI}
 \title{getVI-forestry}
 \usage{
-getVI(object, noWarning)
+getVI(object, noWarning, seed = NULL)
 }
 \arguments{
 \item{object}{A `forestry` object.}
 
 \item{noWarning}{flag to not display warnings}
+
+\item{seed}{A parameter to seed the random number generator for shuffling
+the features of X.}
 }
 \value{
 The variable importance of the forest.

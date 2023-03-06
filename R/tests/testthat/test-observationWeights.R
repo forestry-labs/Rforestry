@@ -1,5 +1,4 @@
 test_that("Tests that observationWeights for the bootstrap is working correctly", {
-  #skip("Multilayer forestry has become non-deterministic.")
   x <- iris[, -2]
   y <- iris[, 2]
   context('Test observationWeights')

@@ -18,7 +18,7 @@ test_that("Tests that random forest is working correctly", {
     nodesizeStrictAvg = 5,
     seed = 2
   )
-  #plot(forest)
+  plot(forest)
   # Test predict
   y_pred <- predict(forest, x, seed = 2)
 
@@ -30,9 +30,8 @@ test_that("Tests that random forest is working correctly", {
   # Mean Square Error
   skip_if_not_mac()
 
-  #options(digits = 16)
-  #print(mean((y_pred - y) ^ 2))
-  expect_equal(mean((y_pred - y) ^ 2), 0.0646640168306661, tolerance = 1e-12)
+  mean((y_pred - y) ^ 2)
+  expect_equal(mean((y_pred - y) ^ 2), 0.06466401683066609618056, tolerance = 1e-12)
 
   # Test factors with missing obs and unused levels are correctly handled
   x$Species[1:70] <- NA
@@ -41,8 +40,8 @@ test_that("Tests that random forest is working correctly", {
     y, seed = 2,nthread = 1)
   y_pred <- predict(forest, x, seed = 2)
   # options(digits = 10)
-  #print(mean((y_pred - y) ^ 2))
-  expect_equal(mean((y_pred - y) ^ 2), 0.107300804721378, tolerance = 1e-6)
+  # print(mean((y_pred - y) ^ 2))
+  expect_equal(mean((y_pred - y) ^ 2), 0.107300804721, tolerance = 1e-6)
 
 
   # Test passing a bad parameter to forestry
