@@ -6,6 +6,8 @@ on:
     paths:
       - "Docker/python_build_environment/**"
       - ".github/workflows/docker.yaml"
+    tags-ignore:
+      - "**"
 
 env:
   REGISTRY: ghcr.io
