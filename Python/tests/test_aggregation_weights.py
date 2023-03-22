@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 from helpers import get_data
-
 from random_forestry import RandomForest
 
 

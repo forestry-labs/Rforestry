@@ -26,23 +26,23 @@ def forest():
     return forest
 
 
-def test_translate_single_tree(forest):
+def test_translate_single_tree(forest: RandomForest):
     assert not forest.saved_forest
 
     forest.translate_tree(0)
     print("Length of pyforest")
     print(len(forest.saved_forest))
-    print(forest.saved_forest[0]);
+    print(forest.saved_forest[0])
 
     assert len(forest.saved_forest) == forest.ntree
-    assert forest.saved_forest[0]  #saved_forest[0] will be filled after translation
+    assert forest.saved_forest[0]  # saved_forest[0] will be filled after translation
     assert all(forest.saved_forest[i] == {} for i in range(1, forest.ntree))
 
     # numNodes = fr.saved_forest[0]['children_right'].size
     # assert not any(fr.saved_forest[0][key].size != numNodes for key in fr.saved_forest[0].keys() )
 
 
-def test_all_trees(forest):
+def test_all_trees(forest: RandomForest):
     X, _ = get_data()
 
     forest.translate_tree(0)

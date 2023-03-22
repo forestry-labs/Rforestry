@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 from helpers import get_data
-
 from random_forestry import RandomForest
 
 
@@ -28,14 +27,14 @@ def forest():
     return forest
 
 
-def test_get_parameters(forest):
+def test_get_parameters(forest: RandomForest):
     assert forest.get_parameters()
     assert forest.get_parameters()["ntree"] == 500
     assert forest.get_parameters()["double_bootstrap"]
     assert len(forest.get_parameters().keys()) == 29
 
 
-def test_set_parameters(forest):
+def test_set_parameters(forest: RandomForest):
     X, y = get_data()
 
     forest.set_parameters(ntree=1000, max_depth=5, seed=1729)
