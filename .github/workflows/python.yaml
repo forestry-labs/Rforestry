@@ -75,6 +75,7 @@ jobs:
           CIBW_ARCHS: x86_64
           CIBW_MANYLINUX_X86_64_IMAGE: ghcr.io/theo-s/rforestry/python_build_env:latest
           CIBW_BUILD: cp38-manylinux* cp39-manylinux* cp310-manylinux* cp311-manylinux*
+          CIBW_TEST_EXTRAS: "test"
           CIBW_TEST_COMMAND: "pytest /project/Python/tests -v --color=yes"
         with:
           package-dir: Python/
@@ -107,6 +108,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.config.arch }}
           CIBW_BUILD: cp38-* cp39-* cp310-* cp311-*
+          CIBW_TEST_EXTRAS: "test"
           CIBW_TEST_COMMAND: "pytest work/Rforestry/Rforestry/Python/tests -v --color=yes"
           CIBW_BEFORE_ALL: >
             brew install armadillo
@@ -148,7 +150,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-          packages_dir: packages/
+          packages-dir: packages/
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
