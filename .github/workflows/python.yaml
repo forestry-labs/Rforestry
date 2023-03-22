@@ -32,13 +32,19 @@ jobs:
         with:
           python-version: 3.9
           cache: "pip"
-          cache-dependency-path: "Python/requirements-dev.txt"
+          cache-dependency-path: "Python/ci-requirements.txt"
+
+      - name: Install CI dependencies
+        working-directory: Python/
+        run: pip install -r ci-requirements.txt
+
+      - name: Linting
+        working-directory: Python/
+        run: echo "TODO"
 
       - name: Build
         working-directory: Python/
         run: |
-          python -m pip install build
-
           python -m build --sdist
 
           # Ensure exactly one artifact was produced.
