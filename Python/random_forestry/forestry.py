@@ -137,7 +137,7 @@ class RandomForest:
      max(# folds * min_trees_per_fold, ntree) total trees, in which at least min_trees_per_fold
      are created leaving out each fold.
     :type min_trees_per_fold: *int, optional, default=0*
-    :param fold_size The number of groups that are selected randomly for each fold to be
+    :param fold_size: The number of groups that are selected randomly for each fold to be
      left out when using minTreesPerFold. When minTreesPerFold is set and foldSize is
      set, all possible groups will be partitioned into folds, each containing foldSize unique groups
      (if foldSize doesn't evenly divide the number of groups, a single fold will be smaller,
@@ -1090,7 +1090,7 @@ class RandomForest:
         :return: A new *RandomForest* object with the given parameters.
          Note: this reinitializes the *RandomForest* object,
          so fit must be called on the new estimator.
-        :rtype: *RandomForest* -- MIGHT CHANGE THE NAME
+        :rtype: *RandomForest*
         """
 
         if not new_parameters:
