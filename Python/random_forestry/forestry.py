@@ -198,7 +198,7 @@ class RandomForest:
 
      * feature_weights (*numpy.array of shape[ncols]*) - an array of sampling probabilities/weights for each feature
        used when subsampling *mtry* features at each node.
-       Check out :meth:`fit() <Rforestry.RandomForest.fit>` fot more details.
+       Check out :meth:`fit() <random_forestry.RandomForest.fit>` fot more details.
 
      * feature_weights_variables (*numpy.array*) - Indices of the features which weight
        more than ``max(feature_weights)*0.001`` .
@@ -275,7 +275,7 @@ class RandomForest:
 
      .. note::
         When a *RandomForest* is initialized, *saved_forest* is set to a list of *ntree* empty dictionaries. In order to
-        populate those dictionaries, one must use the :meth:`translate_tree() <Rforestry.RandomForest.translate_tree>`
+        populate those dictionaries, one must use the :meth:`translate_tree() <random_forestry.RandomForest.translate_tree>`
         method.
 
     :vartype saved_forest: list[dict]
