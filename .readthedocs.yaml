@@ -22,9 +22,9 @@ sphinx:
 python:
   install:
     - method: pip
-      path: .
+      path: Python/
       extra_requirements:
         - docs
     - method: pip
-      path: Python
+      path: Python/
 
