@@ -4,7 +4,7 @@ Usage
 Installation
 ------------
 
-To use random_forestry, first install it using pip:
+To use **random_forestry**, first install it using pip:
 
 .. code-block:: console
 

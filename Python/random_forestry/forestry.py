@@ -846,20 +846,19 @@ class RandomForest:
         :param trees: A list of indices in the range *[0, ntree)*, which tells
          predict which trees in the forest to use for the prediction. Predict will by
          default take the average of all trees in the forest, although this flag
-         can be used to get single tree predictions, or averages of diffferent trees
-         with different weightings. Duplicate entries are allowed, so if ``trees = [0,1,1]``
-         this will predict the weighted average prediction of only trees 0 and 1 weighted by::
-
-            predict(..., trees = [0,1,1]) = (predict(..., trees = [0]) +
-                                            2*predict(..., trees = [1])) / 3
-
-         note we must have ``exact = True`` , and ``aggregation = "average"`` to use tree indices. Defaults to using
-         all trees equally weighted.
+         can be used to get single tree predictions, or averages of different trees
+         with different weightings.
+             .. note::
+                 Duplicate entries are allowed, so if ``trees = [0,1,1]``
+                 this will predict the weighted average prediction of only trees 0 and 1 weighted by:
+                 ``predict(..., trees = [0,1,1]) = (predict(..., trees = [0]) + 2*predict(..., trees = [1])) / 3``
+                 we must have ``exact = True`` , and ``aggregation = "average"`` to use tree indices.
+         Defaults to using all trees equally weighted.
         :type trees: *array_like, optional*
         :param training_idx: When doing OOB predictions with a data set that is of a different size than the
-        training data, training_idx holds the indices of the training observations that should be used for
-        determining the out-of-bag set for each observation in newdata. Entries must be between 1 and the number
-        of training observations, and the length must be equal to the number of observations in newdata.
+         training data, training_idx holds the indices of the training observations that should be used for
+         determining the out-of-bag set for each observation in newdata. Entries must be between 1 and the number
+         of training observations, and the length must be equal to the number of observations in newdata.
         :type training_idx: *array_like, optional*
         :param weightMatrix: An indicator of whether or not we should also return a
          matrix of the weights given to each training observation when making each
@@ -868,7 +867,6 @@ class RandomForest:
         :type weightMatrix: *bool, optional, default=False*
         :return: An array of predicted responses.
         :rtype: numpy.array
-
         """
 
         if aggregation == "oob":
@@ -1246,6 +1244,14 @@ class RandomForest:
 
     # Saving and loading
     def save_forestry(self, filename: Path) -> None:
+        """
+        Given a trained forest, saves the forest using pickle in the file given by *filename*. This can be used
+        to save a model for future analysis or share a model after training.
+
+        :param filename: The name of the file to save the forest model to
+        :type Path: *char/array_like, optional*
+        :rtype: None
+        """
         self.translate_tree()
 
         with open(filename, "wb") as output_file:  # Overwrites any existing file.
@@ -1253,6 +1259,15 @@ class RandomForest:
 
     @staticmethod
     def load_forestry(filename: Path) -> Self:
+        """
+        Loads a forest that has been saved using *save_forestry*. Since the forest contains a pointer to the
+        C++ object, it is necessary to rebuild this object and relink the pointer before the forest can
+        be used to make predictions etc.
+
+        :param filename: The name of the file to save the
+        :type Path: *char/array_like, optional*
+        :rtype: None
+        """
         with open(filename, "rb") as input_file:
             return pickle.load(input_file)  # nosec B301
 
