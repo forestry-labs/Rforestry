@@ -436,7 +436,6 @@ class RandomForest:
             group_vector = np.zeros(nrow, dtype=np.ulonglong)
         return groups_mapping, group_vector
 
-    @FitValidator
     def fit(
         self,
         x: Union[pd.DataFrame, pd.Series, List],
@@ -784,7 +783,6 @@ class RandomForest:
             0,
         )
 
-    @PredictValidator
     def predict(
         self,
         newdata: Optional[Union[pd.DataFrame, pd.Series, List]] = PredictValidator.DEFAULT_NEWDATA,
