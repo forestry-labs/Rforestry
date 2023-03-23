@@ -13,7 +13,6 @@ build:
   apt_packages:
     - graphviz
     - cmake
-    - clang++
     - clang
     - doxygen
     - ninja-build
