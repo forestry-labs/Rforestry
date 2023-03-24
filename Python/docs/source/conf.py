@@ -8,7 +8,6 @@
 
 import sys
 import os
-import sklearn
 
 sys.path.insert(0, '~/Desktop/Rforestry/Python/random_forestry/')
 sys.path.insert(0, os.path.abspath('../../random_forestry/'))
