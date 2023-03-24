@@ -27,4 +27,3 @@ python:
     - requirements: readthedocs_requirements.txt
     - method: pip
       path: Python/
-      system_packages: true
