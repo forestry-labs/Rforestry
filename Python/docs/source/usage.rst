@@ -255,7 +255,7 @@ for more details.
     # Create a RandomForest object
     fr = RandomForest(oob_honest=True, double_bootstrap=True, scale=False)
 
-    print('Traingng the forest')
+    print('Training the forest')
     fr.fit(X, y)
 
     print('Making doubleOOB predictions')
