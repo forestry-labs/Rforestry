@@ -26,9 +26,6 @@ build:
 sphinx:
    configuration: Python/docs/source/conf.py
 
-formats:
-   - html
-
 python:
   install:
     - requirements: readthedocs_requirements.txt
