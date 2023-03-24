@@ -16,7 +16,7 @@ build:
     - clang
     - libarmadillo-dev
     - doxygen
-    - python-pybind11
+    - pybind11-dev
     - ninja-build
 
 # Build documentation in the docs/ directory with Sphinx
