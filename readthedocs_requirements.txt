@@ -3,3 +3,16 @@ pylint >= 2.15.6, < 3
 build >= 0
 pybind11
 sklearn
+dataclasses
+math
+os
+pickle
+sys
+warnings
+pathlib
+random
+typing
+numpy
+pandas
+statsmodels
+pydantic
