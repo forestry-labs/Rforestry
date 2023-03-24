@@ -14,7 +14,7 @@ build:
     - graphviz
     - cmake
     - clang
-    - armadillo-devel
+    - libarmadillo-dev
     - doxygen
     - ninja-build
 
