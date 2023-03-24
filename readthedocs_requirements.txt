@@ -3,11 +3,5 @@ pylint >= 2.15.6, < 3
 build >= 0
 pybind11
 sklearn
-pickle
-pathlib
-random
-typing
 numpy
 pandas
-statsmodels
-pydantic
