@@ -4,11 +4,7 @@ build >= 0
 pybind11
 sklearn
 dataclasses
-math
-os
 pickle
-sys
-warnings
 pathlib
 random
 typing
