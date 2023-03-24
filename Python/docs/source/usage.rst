@@ -29,7 +29,7 @@ of the random_forestry.
 
 .. code-block:: Python
 
-    from Rforestry import RandomForest
+    from random_forestry import RandomForest
 
     # Create a RandomForest object
     fr = RandomForest(ntree=100, mtry=3, oob_honest=True)
