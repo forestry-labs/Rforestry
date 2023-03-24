@@ -24,10 +24,7 @@ sphinx:
 
 python:
   install:
+    - requirements: readthedocs_requirements.txt
     - method: pip
       path: Python/
-      extra_requirements:
-        - docs
-    - method: pip
-      path: Python/
-
+      system_packages: true

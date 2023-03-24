@@ -1,0 +1,4 @@
+flake8 >= 5.0.4, < 6
+pylint >= 2.15.6, < 3
+build >= 0
+pybind11
