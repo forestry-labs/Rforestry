@@ -10,7 +10,8 @@ on:
     branches:
       - master
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-rc[1-9]+"
   pull_request:
     paths:
       - "Python/**"
@@ -159,11 +160,31 @@ jobs:
       - name: List
         run: |
           ls -alh packages
+
+      - name: Extract Tag
+        id: tag
+        uses: aaronbarnaby/get-tag@v1.0.0
+      - name: Parse tag
+        id: version
+        uses: akshens/semver-tag@v4
+        with:
+          version: ${{ steps.tag.outputs.tag }}
+  
+      - name: Publish prerelease packages to Test PyPI
+        if: steps.version.outputs.is-prerelease == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          packages-dir: packages/
+          repository-url: https://test.pypi.org/legacy/
+  
       - name: Publish packages to PyPI
+        if: steps.version.outputs.is-prerelease == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           packages-dir: packages/
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
