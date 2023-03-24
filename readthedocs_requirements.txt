@@ -3,7 +3,6 @@ pylint >= 2.15.6, < 3
 build >= 0
 pybind11
 sklearn
-dataclasses
 pickle
 pathlib
 random
