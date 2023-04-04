@@ -89,7 +89,9 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: ghcr.io/forestry-labs/rforestry/python_build_env:latest
           CIBW_BUILD: cp38-manylinux* cp39-manylinux* cp310-manylinux* cp311-manylinux*
           CIBW_TEST_EXTRAS: "test"
-          CIBW_TEST_COMMAND: "pytest /project/Python/tests -v --color=yes"
+          CIBW_TEST_COMMAND: >
+            pytest /project/Python/tests -v --color=yes &&
+            cd /project/cross_language_test && ./run.sh
         with:
           package-dir: Python/
           output-dir: Python/dist
