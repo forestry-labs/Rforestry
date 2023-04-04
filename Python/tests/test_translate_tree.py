@@ -30,9 +30,6 @@ def test_translate_single_tree(forest: RandomForest):
     assert not forest.saved_forest
 
     forest.translate_tree(0)
-    print("Length of pyforest")
-    print(len(forest.saved_forest))
-    print(forest.saved_forest[0])
 
     assert len(forest.saved_forest) == forest.ntree
     assert forest.saved_forest[0]  # saved_forest[0] will be filled after translation

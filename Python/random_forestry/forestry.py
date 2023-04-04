@@ -650,11 +650,13 @@ class RandomForest:
         if newdata is not None and self.processed_dta.n_observations != len(newdata.index) and training_idx is None:
             warnings.warn("Attempting to do OOB predictions on a dataset which doesn't match the training data!")
             return None
-        elif len(training_idx) != len(newdata.index):
-            raise ValueError("Training Indices must be of the same length as newdata")
-
-        if training_idx is not None and (not np.issubdtype(training_idx.dtype, np.integer) or np.any((training_idx < 0) | (training_idx >= self.processed_dta.n_observations))):
-            raise ValueError("Training Indices must contain integers between 0 and the number of training observations - 1")
+        if training_idx:
+            if len(training_idx) != len(newdata.index):
+                raise ValueError("Training Indices must be of the same length as newdata")
+            if (not np.issubdtype(training_idx.dtype, np.integer) or np.any((training_idx < 0) | (training_idx >= self.processed_dta.n_observations))):
+                raise ValueError("Training Indices must contain integers between 0 and the number of training observations - 1")
+        else:
+            training_idx = range(0, self.processed_dta.n_observations)
 
         n_preds = self._get_n_preds(newdata)
         n_weight_matrix = n_preds * self.processed_dta.n_observations if return_weight_matrix else 0
@@ -870,10 +872,10 @@ class RandomForest:
         """
 
         if aggregation == "oob":
-            predictions, weight_matrix = self._aggregation_oob(newdata, exact, return_weight_matrix)
+            predictions, weight_matrix = self._aggregation_oob(newdata, exact, return_weight_matrix, training_idx)
 
         elif aggregation == "doubleOOB":
-            predictions, weight_matrix = self._aggregation_double_oob(newdata, exact, return_weight_matrix)
+            predictions, weight_matrix = self._aggregation_double_oob(newdata, exact, return_weight_matrix, training_idx)
 
         elif aggregation == "coefs":
             predictions, weight_matrix, coefficients = self._aggregation_coefs(

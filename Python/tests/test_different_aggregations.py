@@ -13,11 +13,20 @@ def test_predict_error():
         forest.predict(aggregation="average")
 
 
-def test_prediction_types():
+def test_predict_average():
+    X, y = get_data()
+
+    forest = RandomForest(oob_honest=True)
+    forest.fit(X, y)
+    prediction = forest.predict(X, aggregation="average")
+    assert len(prediction) == len(X)
+
+
+def test_predict_oob():
     X, y = get_data()
 
     forest = RandomForest(oob_honest=True)
     forest.fit(X, y)
 
-    p = forest.predict(X, aggregation="average")
-    print(p)
+    prediction = forest.predict(X, aggregation="oob")
+    assert len(prediction) == len(X)
