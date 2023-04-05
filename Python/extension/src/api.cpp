@@ -408,11 +408,12 @@ extern "C" {
     
         if (returnWeightMatrix) {
             weightMatrix.zeros(dta_frame->getNumRows(), dta_frame->getNumRows());
-    
+            std::vector<size_t> treeCounts(dta_frame->getNumRows(), 0);
+
             predictions = forest->predictOOB(
                 predi_data,
                 &weightMatrix,
-                nullptr,
+                &treeCounts,
                 doubleOOB,
                 exact,
                 training_idx_use
