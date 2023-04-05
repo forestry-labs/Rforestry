@@ -1,12 +1,11 @@
-import re
-
 import numpy as np
 import pytest
+import re
 from helpers import get_data
 from random_forestry import RandomForest
 
 
-def test_fit():
+def test_fit_validator():
 
     forest = RandomForest()
 
@@ -71,4 +70,18 @@ def test_fit():
         forest.fit(X, y, lin_feats=lin_feats)
 
 
-test_fit()
+def test_observation_weights():
+    X, y = get_data()
+    forest = RandomForest()
+    observation_weights = np.array([1] * X.shape[0])
+    forest.fit(X, y, observation_weights = observation_weights)
+    pred_avg = forest.predict(X, aggregation="average")
+    assert len(pred_avg) == len(X)
+
+    forest = RandomForest()
+    observation_weights = np.array([0] * X.shape[0])
+    n_weighted_obs = 10
+    observation_weights[0:n_weighted_obs] = 1
+    forest.fit(X, y, observation_weights = observation_weights)
+    pred_weight_matrix = forest.predict(X, aggregation="average", return_weight_matrix=True)
+    assert not np.any(pred_weight_matrix['weightMatrix'][:, n_weighted_obs:(X.shape[0])])

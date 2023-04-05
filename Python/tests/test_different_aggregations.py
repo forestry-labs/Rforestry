@@ -6,7 +6,7 @@ from random_forestry import RandomForest
 def test_predict_error():
     X, y = get_data()
 
-    forest = RandomForest(oob_honest=True)
+    forest = RandomForest()
     forest.fit(X, y)
 
     with pytest.raises(ValueError):
@@ -16,7 +16,7 @@ def test_predict_error():
 def test_predict_average():
     X, y = get_data()
 
-    forest = RandomForest(oob_honest=True)
+    forest = RandomForest()
     forest.fit(X, y)
     prediction = forest.predict(X, aggregation="average")
     assert len(prediction) == len(X)
