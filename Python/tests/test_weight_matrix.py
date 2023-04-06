@@ -17,7 +17,7 @@ def test_average():
 def test_oob():
     X, y = get_data()
 
-    forest = RandomForest()
+    forest = RandomForest(oob_honest=True)
     forest.fit(X, y)
 
     pred = forest.predict(X, aggregation="oob")
