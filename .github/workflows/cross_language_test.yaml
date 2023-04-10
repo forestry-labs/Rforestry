@@ -46,6 +46,6 @@ jobs:
           python -m pip install Python/
 
       - name: Run cross-language test
-        working-directory: cross_language_test
+        working-directory: tests/
         run: bash run.sh
         
