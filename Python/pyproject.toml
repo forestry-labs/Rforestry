@@ -18,6 +18,7 @@ dependencies = [
     "pandas >= 1.5.3, < 2",
     "statsmodels >= 0.13.5, < 1",
     "pydantic >= 1.10.6, < 2",
+    "scikit-learn == 1.2.2, < 2",
 
     # Conditional dependencies
     'typing_extensions; python_version < "3.11"'
@@ -30,7 +31,7 @@ zip-safe = false
 
 [project.optional-dependencies]
 dev = ["bumpver >= 2022.1120, < 2023", "pip-tools >= 6.12.3, < 7"]
-test = ["pytest >= 7.2.2, < 8", "scikit-learn == 1.2.2, < 2"]
+test = ["pytest >= 7.2.2, < 8"]
 
 [project.urls]
 Homepage = "https://github.com/forestry-labs/Rforestry#readme"
