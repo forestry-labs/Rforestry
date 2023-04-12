@@ -3,13 +3,18 @@ per-file-ignores =
     # imported but unused
     __init__.py: F401
 max-line-length = 120
-max-complexity = 10
+max-complexity = 15
+exclude =
+  extension
 ignore =
     # E501: line too long - pylint will take care of it
     E501,
     # W291: trailing whitespace - pylint will take care of it
     W291,
-    # W503: line break before binary operator
+    # W503: line break before binary operator - conflict with black when it splits long lines
     W503,
     # E203: whitespace before ':' - conflict with black
     E203
+show-source = true
+color = always
+statistics = true

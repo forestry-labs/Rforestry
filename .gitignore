@@ -9,7 +9,6 @@ legacy/
 playground.R
 Tune/XLearner/tuneXRsparseT2weak12N1000.csv
 *~
-.*
 !.github
 *.out
 *.Rout

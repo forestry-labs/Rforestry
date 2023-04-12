@@ -1,5 +1,6 @@
 import pytest
 from pydantic import ValidationError
+
 from random_forestry import RandomForest
 
 

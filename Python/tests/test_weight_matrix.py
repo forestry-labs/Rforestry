@@ -1,6 +1,8 @@
 from helpers import get_data
 from numpy.testing import assert_array_equal
+
 from random_forestry import RandomForest
+
 
 def test_average():
     X, y = get_data()
@@ -11,8 +13,9 @@ def test_average():
     pred = forest.predict(X, aggregation="average")
     pred_weight_matrix = forest.predict(X, aggregation="average", return_weight_matrix=True)
 
-    assert_array_equal(pred, pred_weight_matrix['predictions'])
-    assert pred_weight_matrix['weightMatrix'].shape == (len(X.index), len(X.index))
+    assert_array_equal(pred, pred_weight_matrix["predictions"])
+    assert pred_weight_matrix["weightMatrix"].shape == (len(X.index), len(X.index))
+
 
 def test_oob():
     X, y = get_data()
@@ -23,8 +26,9 @@ def test_oob():
     pred = forest.predict(X, aggregation="oob")
     pred_weight_matrix = forest.predict(X, aggregation="oob", return_weight_matrix=True)
 
-    assert_array_equal(pred, pred_weight_matrix['predictions'])
-    assert pred_weight_matrix['weightMatrix'].shape == (len(X.index), len(X.index))
+    assert_array_equal(pred, pred_weight_matrix["predictions"])
+    assert pred_weight_matrix["weightMatrix"].shape == (len(X.index), len(X.index))
+
 
 def test_double_oob():
     X, y = get_data()
@@ -35,5 +39,5 @@ def test_double_oob():
     pred = forest.predict(X, aggregation="doubleOOB")
     pred_weight_matrix = forest.predict(X, aggregation="doubleOOB", return_weight_matrix=True)
 
-    assert_array_equal(pred, pred_weight_matrix['predictions'])
-    assert pred_weight_matrix['weightMatrix'].shape == (len(X.index), len(X.index))
+    assert_array_equal(pred, pred_weight_matrix["predictions"])
+    assert pred_weight_matrix["weightMatrix"].shape == (len(X.index), len(X.index))

@@ -42,9 +42,25 @@ jobs:
         working-directory: Python/
         run: pip install -r ci-requirements.txt
 
-      - name: Linting
+      - name: flake8
         working-directory: Python/
-        run: echo "TODO"
+        run: |
+          python3 -m flake8
+
+      - name: bandit
+        working-directory: Python/
+        run: |
+          python3 -m bandit -r .
+
+      - name: isort
+        working-directory: Python/
+        run: |
+          python3 -m isort . --diff --check --color
+
+      - name: black
+        working-directory: Python/
+        run: |
+          python3 -m black . --check --diff --exclude extension
 
       - name: Build
         working-directory: Python/

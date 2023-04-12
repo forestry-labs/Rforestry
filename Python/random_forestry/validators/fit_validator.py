@@ -6,7 +6,6 @@ from .base_validator import BaseValidator
 
 
 class FitValidator(BaseValidator):
-
     def validate_monotonic_constraints(self, *args, **kwargs):
         _self = args[0]
 

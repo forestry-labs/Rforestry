@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 from helpers import get_data
+
 from random_forestry import RandomForest
 
 
@@ -60,7 +61,7 @@ def test_all_trees(forest: RandomForest):
         num_nodes = forest.saved_forest[i]["threshold"].size
         num_leaf_nodes = forest.saved_forest[i]["values"].size
         # assert not any(forest.saved_forest[i][key].size != numNodes for key in forest.saved_forest[i].keys())
-        assert len(forest.saved_forest[i]["feature"]) == num_nodes+num_leaf_nodes
+        assert len(forest.saved_forest[i]["feature"]) == num_nodes + num_leaf_nodes
         assert len(forest.saved_forest[i]["na_left_count"]) == num_nodes
         assert len(forest.saved_forest[i]["na_right_count"]) == num_nodes
         assert len(forest.saved_forest[i]["na_default_direction"]) == num_nodes
