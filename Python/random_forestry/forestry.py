@@ -6,19 +6,18 @@ import sys
 import warnings
 from pathlib import Path
 from random import randrange
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from pydantic import (  # pylint: disable=no-name-in-module
-    ConfigDict,
     StrictBool,
     StrictFloat,
     StrictInt,
     confloat,
     conint,
 )
-from pydantic.dataclasses import dataclass
+from sklearn.base import BaseEstimator
 
 from . import extension, preprocessing  # type: ignore
 from .processed_dta import ProcessedDta
@@ -31,8 +30,9 @@ else:
     from typing_extensions import Self
 
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True, smart_union=True, validate_all=True))
-class RandomForest:
+# @dataclass(config=ConfigDict(arbitrary_types_allowed=True, smart_union=True, validate_all=True))
+@dataclasses.dataclass
+class RandomForest(BaseEstimator):
     """
     The Random Forest Regressor class.
 
@@ -309,11 +309,6 @@ class RandomForest:
     double_tree: StrictBool = False
     na_direction: StrictBool = False
 
-    forest: Optional[pd.DataFrame] = dataclasses.field(default=None, init=False)
-    dataframe: Optional[pd.DataFrame] = dataclasses.field(default=None, init=False)
-    processed_dta: Optional[ProcessedDta] = dataclasses.field(default=None, init=False)
-    saved_forest: List[Dict] = dataclasses.field(default_factory=list, init=False)
-
     def __post_init__(self) -> None:
         if self.nthread > os.cpu_count():
             raise ValueError("nthread cannot exceed total cores in the computer: " + str(os.cpu_count()))
@@ -486,9 +481,6 @@ class RandomForest:
 
         feat_names = preprocessing.get_feat_names(x)
 
-        x = (pd.DataFrame(x)).copy()
-        y = (np.array(y, dtype=np.double)).copy()
-
         nrow, ncol = x.shape
 
         if self.max_depth is None:
@@ -603,6 +595,8 @@ class RandomForest:
             num_columns=ncol,
             feat_names=feat_names,
         )
+
+        return self
 
     def _get_test_data(self, newdata: Optional[pd.DataFrame]) -> np.ndarray:
         if newdata is None:
@@ -1073,7 +1067,7 @@ class RandomForest:
         :rtype: None
         """
 
-        if len(self.saved_forest) == 0:
+        if not hasattr(self, "saved_forest") or len(self.saved_forest) == 0:
             self.saved_forest = [{} for _ in range(self.ntree)]
 
         if tree_ids is None:
@@ -1129,46 +1123,6 @@ class RandomForest:
                 self.saved_forest[cur_id]["averaging_sample_idx"][i] = int(averaging_info[i + 1])
 
             self.saved_forest[cur_id]["seed"] = int(tree_info[num_nodes * 5 + num_leaf_nodes * 2])
-
-    def get_parameters(self) -> dict:
-        """
-        Get the parameters of `RandomForest`.
-
-        :return: A dictionary mapping parameter names of the `RandomForest` to their values.
-        :rtype: dict
-        """
-
-        return {
-            parameter: value
-            for parameter, value in self.__dict__.items()
-            if parameter not in ["forest", "dataframe", "processed_dta", "saved_forest", "__pydantic_initialised__"]
-        }
-
-    def set_parameters(self, **new_parameters: dict) -> Self:
-        """
-        Set the parameters of the *RandomForest*.
-
-        :param **params: Forestry parameters.
-        :type **params: *dict*
-        :return: A new *RandomForest* object with the given parameters.
-         Note: this reinitializes the *RandomForest* object,
-         so fit must be called on the new estimator.
-        :rtype: *RandomForest*
-        """
-
-        if not new_parameters:
-            return self
-
-        current_parameters = self.get_parameters()
-        for parameter in new_parameters:
-            if parameter not in current_parameters.keys():
-                raise ValueError(
-                    f"Invalid parameter {parameter} for RandomForest. Check the list of available parameters "
-                    "with `estimator.get_parameters().keys()`."
-                )
-
-        self.__init__(**{**current_parameters, **new_parameters})  # pylint: disable=unnecessary-dunder-call
-        return self
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -1333,4 +1287,5 @@ class RandomForest:
 
     def __del__(self):
         # Free the pointers to foretsry and dataframe
-        extension.delete_forestry(self.forest, self.dataframe)
+        if hasattr(self, "forest") and hasattr(self, "dataframe"):
+            extension.delete_forestry(self.forest, self.dataframe)

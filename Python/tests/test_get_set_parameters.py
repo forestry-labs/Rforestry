@@ -29,27 +29,27 @@ def forest():
 
 
 def test_get_parameters(forest: RandomForest):
-    assert forest.get_parameters()
-    assert forest.get_parameters()["ntree"] == 500
-    assert forest.get_parameters()["double_bootstrap"]
-    assert len(forest.get_parameters().keys()) == 29
+    assert forest.get_params()
+    assert forest.get_params()["ntree"] == 500
+    assert forest.get_params()["double_bootstrap"]
+    assert len(forest.get_params().keys()) == 29
 
 
 def test_set_parameters(forest: RandomForest):
     X, y = get_data()
 
-    forest.set_parameters(ntree=1000, max_depth=5, seed=1729)
-    assert forest.get_parameters()["ntree"] == 1000
-    assert forest.get_parameters()["max_depth"] == 5
-    assert forest.get_parameters()["seed"] == 1729
+    forest.set_params(ntree=1000, max_depth=5, seed=1729)
+    assert forest.get_params()["ntree"] == 1000
+    assert forest.get_params()["max_depth"] == 5
+    assert forest.get_params()["seed"] == 1729
 
     forest.fit(X, y)
     predictions_1 = forest.predict(X)
 
-    forest.set_parameters(seed=1)
-    assert forest.get_parameters()["ntree"] == 1000
-    assert forest.get_parameters()["max_depth"] == 5
-    assert forest.get_parameters()["seed"] == 1
+    forest.set_params(seed=1)
+    assert forest.get_params()["ntree"] == 1000
+    assert forest.get_params()["max_depth"] == 5
+    assert forest.get_params()["seed"] == 1
 
     forest.fit(X, y)
     predictions_2 = forest.predict(X)

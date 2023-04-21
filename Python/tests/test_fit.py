@@ -13,10 +13,12 @@ def test_fit_validator():
 
     X, y = get_data()
 
-    with pytest.raises(ValueError, match="The dimension of input dataset x doesn't match the output y."):
+    with pytest.raises(
+        ValueError, match=re.escape("Found input variables with inconsistent numbers of samples: [150, 149]")
+    ):
         forest.fit(X, y.drop(0))
 
-    with pytest.raises(ValueError, match="y contains missing data."):
+    with pytest.raises(ValueError, match="Input y contains NaN."):
         forest.fit(X, y.replace(0, np.NaN))
 
     with pytest.raises(ValueError, match="Training data column cannot be all missing values."):
@@ -43,14 +45,14 @@ def test_fit_validator():
     with pytest.raises(ValueError, match="monotonic_constraints must be either 1, 0, or -1"):
         forest.fit(X, y, monotonic_constraints=monotonic_constraints)
 
-    forest.set_parameters(linear=True)
+    forest.set_params(linear=True)
     monotonic_constraints = np.array([0] * X.shape[1])
     monotonic_constraints[0] = 1
     with pytest.raises(ValueError, match="Cannot use linear splitting with monotonic_constraints"):
         forest.fit(X, y, monotonic_constraints=monotonic_constraints)
 
     observation_weights = np.array([0] * X.shape[0])
-    forest.set_parameters(replace=True)
+    forest.set_params(replace=True)
     with pytest.raises(ValueError, match="There must be at least one non-zero weight in observation_weights"):
         forest.fit(X, y, observation_weights=observation_weights)
 

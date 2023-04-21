@@ -58,6 +58,7 @@ def find_match(arr_a: Union[np.ndarray, List], arr_b: Union[np.ndarray, List]) -
     """
 
     temp_dict = {}
+    print(type(arr_b))
 
     for index, element in enumerate(arr_b):
         if str(element) not in temp_dict:
@@ -171,6 +172,7 @@ def preprocess_testing(x, categorical_feature_cols: np.ndarray, categorical_feat
 
     # Track the order of all features
     testing_feature_names = x.columns.values
+
     if testing_feature_names.size == 0:
         warnings.warn("No names are given for each column.")
 
@@ -188,6 +190,7 @@ def preprocess_testing(x, categorical_feature_cols: np.ndarray, categorical_feat
 
     # For each categorical feature, encode x into numeric representation
     for categorical_feature_mapping_ in categorical_feature_mapping:
+        print(categorical_feature_mapping_)
         categorical_feature_col = categorical_feature_mapping_["categoricalFeatureCol"]
         # Get all unique feature values
         testing_unique_feature_values = x.iloc[:, categorical_feature_col].unique()
@@ -206,6 +209,7 @@ def preprocess_testing(x, categorical_feature_cols: np.ndarray, categorical_feat
             categorical_feature_mapping_["uniqueFeatureValues"] = unique_feature_values
             categorical_feature_mapping_["numericFeatureValues"] = numeric_feature_values
 
+        print(unique_feature_values)
         x.iloc[:, categorical_feature_col] = pd.Series(
             find_match(x.iloc[:, categorical_feature_col], unique_feature_values),
             dtype="category",

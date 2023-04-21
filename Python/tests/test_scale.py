@@ -3,7 +3,6 @@ from helpers import get_data
 from random_forestry import RandomForest
 
 X, y = get_data()
-
 forest = RandomForest(ntree=1, max_depth=2, seed=1)
 forest.fit(X, y)
 pred = forest.predict(X)
