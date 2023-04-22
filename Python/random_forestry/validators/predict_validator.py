@@ -3,6 +3,7 @@ from typing import Final, List, Union
 
 import numpy as np
 import pandas as pd
+from sklearn.utils.validation import check_array
 
 from .. import preprocessing
 from .base_validator import BaseValidator
@@ -13,6 +14,8 @@ class PredictValidator(BaseValidator):
     DEFAULT_AGGREGATION: Final[str] = "average"
 
     def get_newdata(self, *args, **kwargs) -> Union[pd.DataFrame, pd.Series, List, None]:
+        if len(args) == 0:
+            return None
         if len(args) > 2:
             raise TypeError(f"predict() takes from 1 to 2 positional arguments but {len(args)} were given")
         if len(args) == 2:
@@ -26,6 +29,7 @@ class PredictValidator(BaseValidator):
         newdata = self.get_newdata(*args, **kwargs)
 
         if newdata is not None:
+            check_array(newdata)  # we can't run check_array() on None
             if not (isinstance(newdata, (pd.DataFrame, pd.Series, list)) or type(newdata).__module__ == np.__name__):
                 raise AttributeError(
                     "newdata must be a Pandas DataFrame, a numpy array, a Pandas Series, or a regular list"

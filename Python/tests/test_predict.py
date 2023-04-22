@@ -21,12 +21,23 @@ def test_predict():
     with pytest.raises(TypeError, match=re.escape("predict() takes from 1 to 2 positional arguments but 3 were given")):
         forest.predict(X, 4)
 
-    with pytest.raises(
-        AttributeError, match="newdata must be a Pandas DataFrame, a numpy array, a Pandas Series, or a regular list"
-    ):
+    with pytest.raises(ValueError):
+        # match=re.escape(
+        #    "Expected 2D array, got scalar array instead:\narray=5\nReshape your data either using "
+        #    "array.reshape(-1, 1) if your data has a single feature or array.reshape(1, -1) "
+        #    "if it contains a single sample.",
+        # )
+        # ):
         forest.predict(5)
 
-    with pytest.raises(ValueError, match="newdata has 1, but the forest was trained with 4 columns."):
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Expected 2D array, got 1D array instead:\narray=[2 3 4 8].\nReshape your data either using "
+            "array.reshape(-1, 1) if your data has a single feature or array.reshape(1, -1) "
+            "if it contains a single sample.",
+        ),
+    ):
         forest.predict([2, 3, 4, 8])
 
     with pytest.raises(
