@@ -195,7 +195,7 @@ class FitValidator(BaseValidator):
 
     def __call__(self, _self, x, y, *args, **kwargs):
         forest = _self
-        _, y = check_X_y(x, y, accept_sparse=True)
+        _, y = check_X_y(x, y, accept_sparse=False)
         x = pd.DataFrame(x).copy()
         # y = (np.array(y, dtype=np.double)).copy()
 
