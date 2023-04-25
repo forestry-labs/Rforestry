@@ -570,7 +570,7 @@ class RandomForest(BaseEstimator):
             observation_weights=observation_weights,
             monotonic_constraints=monotonic_constraints,
             linear_feature_cols=lin_feats,
-            groups=group_memberships,
+            group_memberships=group_memberships,
             col_means=col_means,
             col_sd=col_sd,
             has_nas=x.isnull().values.any(),
