@@ -1,4 +1,3 @@
-import math
 import sys
 import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -11,27 +10,6 @@ from sklearn.model_selection import LeaveOneOut
 
 def has_nas(x: pd.DataFrame) -> bool:
     return x.isnull().values.any()
-
-
-def get_sampsize(forest, x: pd.DataFrame) -> int:
-    nrows, _ = x.shape
-    if forest.sampsize is None:
-        sampsize = nrows if forest.replace else math.ceil(0.632 * nrows)
-    else:
-        sampsize = forest.sampsize
-
-    # only if sample.fraction is given, update sampsize
-    if forest.sample_fraction is not None:
-        sampsize = math.ceil(forest.sample_fraction * nrows)
-
-    return sampsize
-
-
-def get_mtry(forest, x: pd.DataFrame) -> int:
-    _, ncols = x.shape
-    if forest.mtry is None:
-        return max((ncols // 3), 1)
-    return forest.mtry
 
 
 def get_feat_names(x: Union[pd.DataFrame, pd.Series, List]) -> Optional[np.ndarray]:

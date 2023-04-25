@@ -281,16 +281,12 @@ class RandomForest(BaseEstimator):
 
     ntree: conint(gt=0, strict=True) = 500
     replace: StrictBool = True
-    sampsize: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
     sample_fraction: Optional[Union[conint(gt=0, strict=True), confloat(gt=0, strict=True)]] = None
-    mtry: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
     nodesize_spl: conint(gt=0, strict=True) = 5
     nodesize_avg: conint(gt=0, strict=True) = 5
     nodesize_strict_spl: conint(gt=0, strict=True) = 1
     nodesize_strict_avg: conint(gt=0, strict=True) = 1
     min_split_gain: confloat(ge=0) = 0
-    max_depth: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
-    interaction_depth: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
     splitratio: confloat(ge=0, le=1) = 1.0
     oob_honest: StrictBool = False
     double_bootstrap: Optional[StrictBool] = None  # Add a default value.
@@ -299,7 +295,6 @@ class RandomForest(BaseEstimator):
     nthread: conint(ge=0, strict=True) = 0
     splitrule: str = "variance"
     middle_split: StrictBool = False
-    max_obs: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
     linear: StrictBool = False
     min_trees_per_fold: conint(ge=0, strict=True) = 0
     fold_size: conint(gt=0, strict=True) = 1
@@ -330,16 +325,6 @@ class RandomForest(BaseEstimator):
         if self.double_tree and self.splitratio in (0, 1):
             warnings.warn("Trees cannot be doubled if splitratio is 1. We have set double_tree to False.")
             self.double_tree = False
-
-        if (
-            self.interaction_depth is not None
-            and self.max_depth is not None
-            and self.interaction_depth > self.max_depth
-        ):
-            warnings.warn(
-                "interaction_depth cannot be greater than max_depth. We have set interaction_depth to max_depth."
-            )
-            self.interaction_depth = self.max_depth
 
     def _get_seed(self, seed: Optional[int]) -> int:
         if seed is None:
@@ -424,6 +409,11 @@ class RandomForest(BaseEstimator):
         x: Union[pd.DataFrame, pd.Series, List],
         y: np.ndarray,
         *,
+        interaction_depth: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_INTERACTION_DEPTH,
+        max_depth: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_MAX_DEPTH,
+        max_obs: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_MAX_OBS,
+        mtry: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_MTRY,
+        sampsize: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_SAMPSIZE,
         interaction_variables: Optional[List] = None,  # pylint: disable=unused-argument
         feature_weights: Optional[np.ndarray] = None,
         deep_feature_weights: Optional[np.ndarray] = None,
@@ -480,20 +470,13 @@ class RandomForest(BaseEstimator):
         # Make sure that all the parameters exist when passed to RandomForest
 
         feat_names = preprocessing.get_feat_names(x)
-
         nrow, ncol = x.shape
 
-        if self.max_depth is None:
-            self.max_depth = round(nrow / 2) + 1
-
-        if self.interaction_depth is None:
-            self.interaction_depth = self.max_depth
-
-        if self.max_obs is None:
-            self.max_obs = y.size
-
-        self.sampsize = preprocessing.get_sampsize(self, x)
-        self.mtry = preprocessing.get_mtry(self, x)
+        self.max_depth = max_depth
+        self.interaction_depth = interaction_depth
+        self.max_obs = max_obs
+        self.sampsize = sampsize
+        self.mtry = mtry
 
         self._set_nodesize_strict()
 

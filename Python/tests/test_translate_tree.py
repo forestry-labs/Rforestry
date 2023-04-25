@@ -13,7 +13,6 @@ def forest():
         ntree=500,
         replace=True,
         sample_fraction=0.8,
-        mtry=3,
         nodesize_strict_spl=5,
         splitrule="variance",
         splitratio=1,
@@ -23,7 +22,7 @@ def forest():
 
     X, y = get_data()
 
-    forest.fit(X, y)
+    forest.fit(X, y, mtry=3)
     return forest
 
 

@@ -1,3 +1,7 @@
+import warnings
+from math import ceil
+from typing import Final
+
 import numpy as np
 import pandas as pd
 from sklearn.base import check_X_y
@@ -7,6 +11,12 @@ from .base_validator import BaseValidator
 
 
 class FitValidator(BaseValidator):
+    DEFAULT_MTRY: Final = None
+    DEFAULT_SAMPSIZE: Final = None
+    DEFAULT_MAX_OBS: Final = None
+    DEFAULT_MAX_DEPTH: Final = None
+    DEFAULT_INTERACTION_DEPTH: Final = None
+
     def validate_monotonic_constraints(self, _self, x, **kwargs):
         x = pd.DataFrame(x).copy()
         _, ncols = x.shape
@@ -109,7 +119,82 @@ class FitValidator(BaseValidator):
             return groups
         return None
 
+    def validate_mtry(self, x, **kwargs) -> int:
+        _, ncols = x.shape
+
+        if "mtry" in kwargs:
+            mtry = kwargs["mtry"]
+        else:
+            mtry = __class__.DEFAULT_MTRY
+
+        if mtry is None:
+            mtry = max((ncols // 3), 1)
+
+        if mtry > ncols:
+            raise ValueError("mtry cannot exceed total amount of features in x.")
+
+        return mtry
+
+    def validate_sampsize(self, forest, x, **kwargs) -> int:
+        nrows, _ = x.shape
+
+        if "sampsize" in kwargs:
+            sampsize = kwargs["sampsize"]
+        else:
+            sampsize = __class__.DEFAULT_SAMPSIZE
+
+        if sampsize is None:
+            sampsize = nrows if forest.replace else ceil(0.632 * nrows)
+
+        # only if sample.fraction is given, update sampsize
+        if forest.sample_fraction is not None:
+            sampsize = ceil(forest.sample_fraction * nrows)
+
+        return sampsize
+
+    def validate_max_obs(self, y, **kwargs):
+        if "max_obs" in kwargs:
+            max_obs = kwargs["max_obs"]
+        else:
+            max_obs = __class__.DEFAULT_MAX_OBS
+
+        if max_obs is None:
+            return y.size
+
+        return max_obs
+
+    def validate_max_depth(self, x, **kwargs):
+        nrows, _ = x.shape
+
+        if "max_depth" in kwargs:
+            max_depth = kwargs["max_depth"]
+        else:
+            max_depth = __class__.DEFAULT_MAX_DEPTH
+
+        if max_depth is None:
+            return round(nrows / 2) + 1
+
+        return max_depth
+
+    def validate_interaction_depth(self, **kwargs):
+        if "interaction_depth" in kwargs:
+            interaction_depth = kwargs["interaction_depth"]
+        else:
+            interaction_depth = __class__.DEFAULT_INTERACTION_DEPTH
+
+        if interaction_depth is None:
+            return kwargs["max_depth"]
+        else:
+            if interaction_depth > kwargs["max_depth"]:
+                warnings.warn(
+                    "interaction_depth cannot be greater than max_depth. We have set interaction_depth to max_depth."
+                )
+                return kwargs["max_depth"]
+            else:
+                return interaction_depth
+
     def __call__(self, _self, x, y, *args, **kwargs):
+        forest = _self
         _, y = check_X_y(x, y, accept_sparse=True)
         x = pd.DataFrame(x).copy()
         # y = (np.array(y, dtype=np.double)).copy()
@@ -131,10 +216,18 @@ class FitValidator(BaseValidator):
 
         if not _self.replace and preprocessing.get_sampsize(_self, x) > nrows:
             raise ValueError("You cannot sample without replacement with size more than total number of observations.")
-        if preprocessing.get_mtry(_self, x) > ncols:
-            raise ValueError("mtry cannot exceed total amount of features in x.")
 
-        kwargs["monotonic_constraints"] = self.validate_monotonic_constraints(_self, x, **kwargs)
+        kwargs["mtry"] = self.validate_mtry(x, **kwargs)
+
+        kwargs["sampsize"] = self.validate_sampsize(forest, x, **kwargs)
+
+        kwargs["max_obs"] = self.validate_max_obs(y, **kwargs)
+
+        kwargs["max_depth"] = self.validate_max_depth(x, **kwargs)
+
+        kwargs["interaction_depth"] = self.validate_interaction_depth(**kwargs)
+
+        kwargs["monotonic_constraints"] = self.validate_monotonic_constraints(forest, x, **kwargs)
 
         kwargs["lin_feats"] = self.validate_lin_feats(x, **kwargs)
 
@@ -142,9 +235,9 @@ class FitValidator(BaseValidator):
 
         kwargs["deep_feature_weights"] = self.validate_deep_feature_weights(x, **kwargs)
 
-        kwargs["observation_weights"] = self.validate_observation_weights(_self, x, **kwargs)
+        kwargs["observation_weights"] = self.validate_observation_weights(forest, x, **kwargs)
 
         if "groups" in kwargs:
             kwargs["groups"] = self.validate_groups(**kwargs)
 
-        return self.function(_self, x, y, **kwargs)
+        return self.function(forest, x, y, **kwargs)
