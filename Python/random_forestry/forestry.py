@@ -571,7 +571,7 @@ class RandomForest(BaseEstimator):
         )
 
         # Update the fields
-        self.processed_dta_ = ProcessedDta(
+        self.processed_dta_: ProcessedDta = ProcessedDta(
             processed_x=processed_x,
             y=y,
             categorical_feature_cols=categorical_feature_cols,
@@ -591,7 +591,7 @@ class RandomForest(BaseEstimator):
             num_columns=ncol,
             feat_names=preprocessing.get_feat_names(x),
         )
-
+        self.translate_tree()
         self.fitted_ = True
 
         return self
@@ -1065,7 +1065,7 @@ class RandomForest(BaseEstimator):
         :rtype: None
         """
 
-        # if not hasattr(self, "saved_forest") or len(self.saved_forest) == 0:
+        # if not hasattr(self, "saved_forest_") or len(self.saved_forest_) == 0:
         self.saved_forest_ = [{} for _ in range(self.ntree)]
 
         if tree_ids is None:
@@ -1121,6 +1121,8 @@ class RandomForest(BaseEstimator):
                 self.saved_forest_[cur_id]["averaging_sample_idx"][i] = int(averaging_info[i + 1])
 
             self.saved_forest_[cur_id]["seed"] = int(tree_info[num_nodes * 5 + num_leaf_nodes * 2])
+
+        return self
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -1191,28 +1193,29 @@ class RandomForest(BaseEstimator):
         ind, ind_s, ind_a, ind_val = 0, 0, 0, 0
         for i in range(state["ntree"]):
             for j in range(tree_counts[3 * i]):
-                thresholds[ind] = state["saved_forest"][i]["threshold"][j]
-                features[ind] = state["saved_forest"][i]["feature"][j]
-                na_left_counts[ind] = state["saved_forest"][i]["na_left_count"][j]
-                na_right_counts[ind] = state["saved_forest"][i]["na_right_count"][j]
-                na_default_direction[ind] = state["saved_forest"][i]["na_default_direction"][j]
+                thresholds[ind] = state["saved_forest_"][i]["threshold"][j]
+                features[ind] = state["saved_forest_"][i]["feature"][j]
+                na_left_counts[ind] = state["saved_forest_"][i]["na_left_count"][j]
+                na_right_counts[ind] = state["saved_forest_"][i]["na_right_count"][j]
+                na_default_direction[ind] = state["saved_forest_"][i]["na_default_direction"][j]
 
                 ind += 1
 
             for j in range(tree_counts[3 * i + 1]):
-                sample_split_idx[ind_s] = state["saved_forest"][i]["splitting_sample_idx"][j]
+                sample_split_idx[ind_s] = state["saved_forest_"][i]["splitting_sample_idx"][j]
                 ind_s += 1
 
             for j in range(tree_counts[3 * i + 2]):
-                sample_av_idx[ind_a] = state["saved_forest"][i]["averaging_sample_idx"][j]
+                sample_av_idx[ind_a] = state["saved_forest_"][i]["averaging_sample_idx"][j]
                 ind_a += 1
 
+            print(state["saved_forest_"][i]["values"])
             for j in range(tree_counts[3 * i + 3]):
-                features[tree_counts[3 * i] + ind_val] = state["saved_forest"][i]["feature"][j]
-                predict_weights[ind_val] = state["saved_forest"][i]["values"][j]
+                features[tree_counts[3 * i] + ind_val] = state["saved_forest_"][i]["feature"][j]
+                predict_weights[ind_val] = state["saved_forest_"][i]["values"][j]
                 ind_val += 1
 
-            tree_seeds[i] = state["saved_forest"][i]["seed"]
+            tree_seeds[i] = state["saved_forest_"][i]["seed"]
 
         state["forest_"] = extension.reconstruct_tree(
             state["dataframe_"],

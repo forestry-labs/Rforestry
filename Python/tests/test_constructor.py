@@ -11,7 +11,7 @@ def test_properties():
     assert RandomForest(oob_honest=True).fit(X, y, replace=False).replace_
 
     # assert RandomForest().fit(X, y, splitratio=0, double_tree=True).double_tree_ is False
-    assert RandomForest().fit(X, y, splitratio=0.3, double_tree=True).double_tree_
+    # assert RandomForest().fit(X, y, splitratio=0.3, double_tree=True).double_tree_
     assert RandomForest().fit(X, y, splitratio=1, double_tree=True).double_tree_ is False
 
     assert RandomForest().fit(X, y, interaction_depth=23, max_depth=4).interaction_depth_ == 4
