@@ -38,23 +38,23 @@ class PredictValidator(BaseValidator):
             newdata = (pd.DataFrame(newdata)).copy()
             newdata.reset_index(drop=True, inplace=True)
 
-            if len(newdata.columns) != _self.processed_dta.num_columns:
+            if len(newdata.columns) != _self.processed_dta_.num_columns:
                 raise ValueError(
                     f"newdata has {len(newdata.columns)}, "
-                    f"but the forest was trained with {_self.processed_dta.num_columns} columns."
+                    f"but the forest was trained with {_self.processed_dta_.num_columns} columns."
                 )
 
-            if _self.processed_dta.feat_names is not None:
-                if not set(newdata.columns) == set(_self.processed_dta.feat_names):
+            if _self.processed_dta_.feat_names is not None:
+                if not set(newdata.columns) == set(_self.processed_dta_.feat_names):
                     raise ValueError("newdata has different columns then the ones the forest was trained with.")
 
                 # If linear is true we can't predict observations with some features missing.
                 if _self.linear and newdata.isnull().values.any():
                     raise ValueError("linear does not support missing data")
 
-                if not all(newdata.columns == _self.processed_dta.feat_names):
+                if not all(newdata.columns == _self.processed_dta_.feat_names):
                     warnings.warn("newdata columns have been reordered so that they match the training feature matrix")
-                    newdata = newdata[_self.processed_dta.feat_names]
+                    newdata = newdata[_self.processed_dta_.feat_names]
 
         return newdata
 
@@ -88,7 +88,7 @@ class PredictValidator(BaseValidator):
         if aggregation == "oob":
             pass
         elif aggregation == "doubleOOB":
-            if not _self.double_bootstrap:
+            if not _self.double_bootstrap_:
                 raise ValueError(
                     "Attempting to do double OOB predictions "
                     "with a forest that was not trained with doubleBootstrap = True"

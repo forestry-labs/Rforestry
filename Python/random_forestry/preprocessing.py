@@ -53,7 +53,7 @@ def forest_checker(forest) -> None:
     @return A message if the forest does not have a valid C++ pointer.
     """
 
-    if (not forest.dataframe) or (not forest.forest):
+    if (not forest.dataframe_) or (not forest.forest_):
         raise ValueError("The RandomForest object has invalid ctypes pointers.")
 
 

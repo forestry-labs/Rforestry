@@ -1,10 +1,8 @@
-from sklearn.utils.estimator_checks import check_estimator
+from sklearn.utils.estimator_checks import parametrize_with_checks
 
 from random_forestry import RandomForest
 
 
-def test_all_estimators():
-    return check_estimator(RandomForest())
-
-
-print(RandomForest._get_param_names())
+@parametrize_with_checks([RandomForest()])
+def test_sklearn_compatible_estimator(estimator, check):
+    check(estimator)

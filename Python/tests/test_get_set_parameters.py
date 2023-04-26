@@ -11,11 +11,9 @@ from random_forestry import RandomForest
 def forest():
     forest = RandomForest(
         ntree=500,
-        replace=True,
         sample_fraction=0.8,
         nodesize_strict_spl=5,
         splitrule="variance",
-        splitratio=1,
         nodesize_strict_avg=5,
         seed=2,
         oob_honest=True,
@@ -23,15 +21,14 @@ def forest():
 
     X, y = get_data()
 
-    forest.fit(X, y, mtry=3)
+    forest.fit(X, y, mtry=3, splitratio=1, replace=True)
     return forest
 
 
 def test_get_parameters(forest: RandomForest):
     assert forest.get_params()
     assert forest.get_params()["ntree"] == 500
-    assert forest.get_params()["double_bootstrap"]
-    assert len(forest.get_params().keys()) == 24
+    assert len(forest.get_params().keys()) == 20
 
 
 def test_set_parameters(forest: RandomForest):
@@ -47,7 +44,6 @@ def test_set_parameters(forest: RandomForest):
 
     forest.set_params(seed=1)
     assert forest.get_params()["ntree"] == 1000
-    # assert forest.get_params()["max_depth"] == 5
     assert forest.get_params()["seed"] == 1
 
     forest.fit(X, y)

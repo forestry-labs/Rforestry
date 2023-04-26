@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from sklearn.base import check_X_y
 
-from .. import preprocessing
 from .base_validator import BaseValidator
 
 
@@ -16,9 +15,12 @@ class FitValidator(BaseValidator):
     DEFAULT_MAX_OBS: Final = None
     DEFAULT_MAX_DEPTH: Final = None
     DEFAULT_INTERACTION_DEPTH: Final = None
+    DEFAULT_DOUBLE_BOOTSTRAP: Final = None
+    DEFAULT_DOUBLE_TREE: Final = False
+    DEFAULT_SPLITRATIO: Final = 1.0
+    DEFAULT_REPLACE: Final = True
 
-    def validate_monotonic_constraints(self, _self, x, **kwargs):
-        x = pd.DataFrame(x).copy()
+    def validate_monotonic_constraints(self, forest, x, **kwargs):
         _, ncols = x.shape
 
         if "monotonic_constraints" not in kwargs:
@@ -30,16 +32,15 @@ class FitValidator(BaseValidator):
             raise ValueError("monotonic_constraints must have the size of x")
         if any(i not in (0, 1, -1) for i in monotonic_constraints):
             raise ValueError("monotonic_constraints must be either 1, 0, or -1")
-        if any(i != 0 for i in monotonic_constraints) and _self.linear:
+        if any(i != 0 for i in monotonic_constraints) and forest.linear:
             raise ValueError("Cannot use linear splitting with monotonic_constraints")
 
         return monotonic_constraints
 
-    def validate_observation_weights(self, _self, x, **kwargs):
-        x = pd.DataFrame(x).copy()
+    def validate_observation_weights(self, forest, x, **kwargs):
         nrows, _ = x.shape
 
-        if not _self.replace:
+        if not self.validate_replace(forest, **kwargs):
             observation_weights = np.zeros(nrows, dtype=np.double)
         elif "observation_weights" not in kwargs:
             observation_weights = np.repeat(1.0, nrows)
@@ -50,13 +51,12 @@ class FitValidator(BaseValidator):
             raise ValueError("observation_weights must have length len(x)")
         if any(i < 0 for i in observation_weights):
             raise ValueError("The entries in observation_weights must be non negative")
-        if _self.replace and np.sum(observation_weights) == 0:
+        if self.validate_replace(forest, **kwargs) and np.sum(observation_weights) == 0:
             raise ValueError("There must be at least one non-zero weight in observation_weights")
 
         return observation_weights
 
     def validate_lin_feats(self, x, **kwargs):
-        x = pd.DataFrame(x).copy()
         _, ncols = x.shape
 
         if "lin_feats" not in kwargs:
@@ -70,7 +70,6 @@ class FitValidator(BaseValidator):
         return lin_feats
 
     def validate_feature_weights(self, x, **kwargs):
-        x = pd.DataFrame(x).copy()
         _, ncols = x.shape
 
         if "feature_weights" not in kwargs:
@@ -92,7 +91,6 @@ class FitValidator(BaseValidator):
         return feature_weights
 
     def validate_deep_feature_weights(self, x, **kwargs):
-        x = pd.DataFrame(x).copy()
         _, ncols = x.shape
 
         if "deep_feature_weights" not in kwargs:
@@ -144,13 +142,66 @@ class FitValidator(BaseValidator):
             sampsize = __class__.DEFAULT_SAMPSIZE
 
         if sampsize is None:
-            sampsize = nrows if forest.replace else ceil(0.632 * nrows)
+            sampsize = nrows if self.validate_replace(forest, **kwargs) else ceil(0.632 * nrows)
 
         # only if sample.fraction is given, update sampsize
         if forest.sample_fraction is not None:
             sampsize = ceil(forest.sample_fraction * nrows)
 
+        if not self.validate_replace(forest, **kwargs) and sampsize > nrows:
+            raise ValueError("You cannot sample without replacement with size more than total number of observations.")
+
         return sampsize
+
+    def validate_double_bootstrap(self, forest, **kwargs) -> bool:
+        if "double_bootstrap" in kwargs:
+            double_bootstrap = kwargs["double_bootstrap"]
+        else:
+            double_bootstrap = __class__.DEFAULT_DOUBLE_BOOTSTRAP
+
+        if double_bootstrap is None:
+            return forest.oob_honest
+
+        return double_bootstrap
+
+    def validate_replace(self, forest, **kwargs) -> bool:
+        if "replace" in kwargs:
+            replace = kwargs["replace"]
+        else:
+            replace = __class__.DEFAULT_REPLACE
+
+        if forest.oob_honest and not replace:
+            warnings.warn("replace must be set to TRUE to use OOBhonesty, setting this to True now")
+            return True
+
+        return replace
+
+    def validate_double_tree(self, forest, **kwargs) -> bool:
+        if "double_tree" in kwargs:
+            double_tree = kwargs["double_tree"]
+        else:
+            double_tree = __class__.DEFAULT_DOUBLE_TREE
+
+        if double_tree and self.validate_splitratio(forest, **kwargs) in (0, 1):
+            warnings.warn("Trees cannot be doubled if splitratio is 1. We have set double_tree to False.")
+            return False
+
+        return double_tree
+
+    def validate_splitratio(self, forest, **kwargs) -> float:
+        if "splitratio" in kwargs:
+            splitratio = kwargs["splitratio"]
+        else:
+            splitratio = __class__.DEFAULT_SPLITRATIO
+
+        if forest.oob_honest and splitratio != 1:
+            warnings.warn("oob_honest is set to true, so we will run OOBhonesty rather than standard honesty.")
+            return 1
+
+        if splitratio < 0 or splitratio > 1:
+            raise ValueError("SplitRatio needs to be in range (0,1)")
+
+        return splitratio
 
     def validate_max_obs(self, y, **kwargs):
         if "max_obs" in kwargs:
@@ -197,9 +248,9 @@ class FitValidator(BaseValidator):
         forest = _self
         _, y = check_X_y(x, y, accept_sparse=False)
         x = pd.DataFrame(x).copy()
-        # y = (np.array(y, dtype=np.double)).copy()
 
-        nrows, ncols = x.shape
+        if len(args) > 0:
+            raise ValueError("There can be only 2 non-keyword arguments: X, y")
 
         # Check if the input dimension of x matches y
         if nrows != y.size:
@@ -214,12 +265,17 @@ class FitValidator(BaseValidator):
         if _self.linear and x.isnull().values.any():
             raise ValueError("Cannot do imputation splitting with linear.")
 
-        if not _self.replace and preprocessing.get_sampsize(_self, x) > nrows:
-            raise ValueError("You cannot sample without replacement with size more than total number of observations.")
-
         kwargs["mtry"] = self.validate_mtry(x, **kwargs)
 
+        kwargs["splitratio"] = self.validate_splitratio(forest, **kwargs)
+
+        kwargs["replace"] = self.validate_replace(forest, **kwargs)
+
+        kwargs["double_tree"] = self.validate_double_tree(forest, **kwargs)
+
         kwargs["sampsize"] = self.validate_sampsize(forest, x, **kwargs)
+
+        kwargs["double_bootstrap"] = self.validate_double_bootstrap(forest, **kwargs)
 
         kwargs["max_obs"] = self.validate_max_obs(y, **kwargs)
 
@@ -237,7 +293,6 @@ class FitValidator(BaseValidator):
 
         kwargs["observation_weights"] = self.validate_observation_weights(forest, x, **kwargs)
 
-        if "groups" in kwargs:
-            kwargs["groups"] = self.validate_groups(**kwargs)
+        kwargs["groups"] = self.validate_groups(**kwargs)
 
         return self.function(forest, x, y, **kwargs)
