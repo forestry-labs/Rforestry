@@ -102,9 +102,9 @@ jobs:
         uses: pypa/cibuildwheel@v2.11.2
         env:
           CIBW_ARCHS: x86_64
-          CIBW_MANYLINUX_X86_64_IMAGE: ghcr.io/forestry-labs/rforestry/python_build_env:bp-armadillo
+          CIBW_MANYLINUX_X86_64_IMAGE: ghcr.io/forestry-labs/rforestry/python_build_env:latest
           CIBW_BUILD: cp38-manylinux* cp39-manylinux* cp310-manylinux* cp311-manylinux*
-          CIBW_TEST_EXTRAS: "test"
+          CIBW_TEST_EXTRAS: test
           CIBW_TEST_COMMAND: pytest /project/Python/tests -v --color=yes
         with:
           package-dir: Python/

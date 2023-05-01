@@ -30,8 +30,8 @@ packages = ["random_forestry", "random_forestry.validators"]
 zip-safe = false
 
 [project.optional-dependencies]
-dev = ["bumpver >= 2022.1120, < 2023", "pip-tools >= 6.12.3, < 7"]
-test = ["pytest >= 7.2.2, < 8"]
+dev = ["bumpver >= 2022.1120", "pip-tools >= 6.12.3"]
+test = ["pytest >= 7.2.2"]
 
 [project.urls]
 Homepage = "https://github.com/forestry-labs/Rforestry#readme"
