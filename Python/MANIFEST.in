@@ -1,15 +1,16 @@
 include README.md LICENSE 
 
-include extension/pybind11/LICENSE extension/pybind11/CMakeLists.txt
-graft extension/pybind11/include
-graft extension/pybind11/tools
+include extension/include/pybind11/LICENSE extension/include/pybind11/CMakeLists.txt
+graft extension/include/pybind11/include
+graft extension/include/pybind11/tools
 
-graft extension/armadillo/include
-graft extension/armadillo/src
-graft extension/armadillo/misc
-graft extension/armadillo/cmake_aux
-include extension/armadillo/CMakeLists.txt
+graft extension/include/armadillo/include
+graft extension/include/armadillo/src
+graft extension/include/armadillo/misc
+graft extension/include/armadillo/cmake_aux
+include extension/include/armadillo/CMakeLists.txt
 
-graft extension/include
 graft extension/src
+
+include extension/api.cpp extension/api.h extension/main.cpp
 include extension/CMakeLists.txt

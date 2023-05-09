@@ -9,19 +9,29 @@ project(forestry)
 
 #### PyBind11
 
-add_subdirectory(pybind11)
+add_subdirectory(include/pybind11)
 
 
 #### Armadillo
 
 option(BUILD_SHARED_LIBS "build shared library" OFF)
 option(BUILD_SMOKE_TEST "build smoke test" OFF)
-add_subdirectory(armadillo)
+add_subdirectory(include/armadillo)
 
 
 
-
-add_library(extension MODULE src/main.cpp src/api.cpp include/forestry.cpp include/forestryTree.cpp include/dataFrame.cpp include/treeSplitting.cpp include/RFNode.cpp include/sampling.cpp include/utils.cpp)
+add_library(extension
+    MODULE
+        main.cpp
+        api.cpp
+        src/forestry.cpp
+        src/forestryTree.cpp
+        src/dataFrame.cpp
+        src/treeSplitting.cpp
+        src/RFNode.cpp
+        src/sampling.cpp
+        src/utils.cpp
+)
 
 target_link_libraries(extension PRIVATE pybind11::module pybind11::lto pybind11::windows_extras PUBLIC armadillo)
 
@@ -33,7 +43,7 @@ endif()
 
 set_target_properties(extension PROPERTIES CXX_VISIBILITY_PRESET "hidden" CUDA_VISIBILITY_PRESET "hidden")
 
-target_include_directories(extension PUBLIC include)
+target_include_directories(extension PRIVATE src)
 
 # VERSION_INFO is defined by setup.py and passed into the C++ code as a
 # define (VERSION_INFO) here.
