@@ -1,4 +1,4 @@
-name: C++ Testing
+name: C++
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
       - ".github/workflows/cpp.yaml"
 
 jobs:
-  lint:
+  linting:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
@@ -26,7 +26,7 @@ jobs:
         working-directory: src/
         run: |
           clang-tidy *.cpp -header-filter="^.*/src/.*" --use-color -- -I/usr/lib/R/site-library/RcppArmadillo/include -I/usr/lib/R/site-library/Rcpp/include -I/usr/share/R/include -I/RcppThread-2.1.2/inst/include
-  tests:
+  testing:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
