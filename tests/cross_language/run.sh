@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 echo "=== Running Python script started  ==="
 python3 python_test.py > /tmp/python_output
@@ -11,4 +12,6 @@ echo "=== Running R script finished      ==="
 echo
 
 echo "*** Differences                    ***"
+
 diff -s /tmp/python_output /tmp/R_output
+

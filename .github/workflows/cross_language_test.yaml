@@ -7,7 +7,7 @@ on:
       - "Python/**"
       - "R/**"
       - "src/**"
-      - "tests/**"
+      - "tests/cross_language/**"
       - ".github/workflows/cross_language_test.yaml"
 
 jobs:
@@ -47,6 +47,6 @@ jobs:
           python -m pip install Python/
 
       - name: Run cross-language test
-        working-directory: tests/
+        working-directory: tests/cross_language
         run: bash run.sh
         
