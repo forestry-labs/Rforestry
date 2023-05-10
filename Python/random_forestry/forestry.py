@@ -1,6 +1,5 @@
 import dataclasses
 import math
-import os
 import pickle  # nosec B403 - 'Consider possible security implications associated with pickle'
 import sys
 import warnings
@@ -10,12 +9,6 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from pydantic import (  # pylint: disable=no-name-in-module
-    StrictFloat,
-    StrictInt,
-    confloat,
-    conint,
-)
 from sklearn.base import BaseEstimator
 
 from . import extension, preprocessing  # type: ignore
@@ -280,24 +273,24 @@ class RandomForest(BaseEstimator):
     def __init__(
         self,
         *,
-        ntree: conint(gt=0, strict=True) = 500,
-        sample_fraction: Optional[Union[conint(gt=0, strict=True), confloat(gt=0, strict=True)]] = None,
-        nodesize_spl: conint(gt=0, strict=True) = 5,
-        nodesize_avg: conint(gt=0, strict=True) = 5,
-        nodesize_strict_spl: conint(gt=0, strict=True) = 1,
-        nodesize_strict_avg: conint(gt=0, strict=True) = 1,
-        min_split_gain: confloat(ge=0) = 0,
+        ntree: int = 500,
+        sample_fraction: Optional[Union[int, float]] = None,
+        nodesize_spl: int = 5,
+        nodesize_avg: int = 5,
+        nodesize_strict_spl: int = 1,
+        nodesize_strict_avg: int = 1,
+        min_split_gain: float = 0,
         oob_honest: bool = False,
-        seed: conint(ge=0, strict=True) = randrange(1001),  # nosec B311
+        seed: int = randrange(1001),  # nosec B311
         verbose: bool = False,
-        nthread: conint(ge=0, strict=True) = 0,
+        nthread: int = 0,
         splitrule: str = "variance",
         middle_split: bool = False,
         linear: bool = False,
-        min_trees_per_fold: conint(ge=0, strict=True) = 0,
-        fold_size: conint(gt=0, strict=True) = 1,
+        min_trees_per_fold: int = 0,
+        fold_size: int = 1,
         monotone_avg: bool = False,
-        overfit_penalty: Union[StrictInt, StrictFloat] = 1,
+        overfit_penalty: Union[int, float] = 1,
         scale: bool = False,
         na_direction: bool = False,
     ):
@@ -322,13 +315,6 @@ class RandomForest(BaseEstimator):
         self.scale = scale
         self.na_direction = na_direction
 
-    def _validate_existing_parameters(self) -> None:
-        if self.nthread > os.cpu_count():
-            raise ValueError("nthread cannot exceed total cores in the computer: " + str(os.cpu_count()))
-
-        if self.min_split_gain > 0 and not self.linear:
-            raise ValueError("min_split_gain cannot be set without setting linear to be true.")
-
     def _get_seed(self, seed: Optional[int]) -> int:
         if seed is None:
             return self.seed
@@ -350,29 +336,29 @@ class RandomForest(BaseEstimator):
 
         if self.nodesize_strict_spl > split_sample_size:
             warnings.warn(
-                "nodesizeStrictSpl cannot exceed splitting sample size. ",
-                "We have set nodesizeStrictSpl to be the maximum.",
+                "nodesizeStrictSpl cannot exceed splitting sample size. "
+                "We have set nodesizeStrictSpl to be the maximum."
             )
             self.nodesize_strict_spl = split_sample_size
 
         if self.nodesize_strict_avg > avg_sample_size:
             warnings.warn(
-                "nodesizeStrictAvg cannot exceed averaging sample size. ",
-                "We have set nodesizeStrictAvg to be the maximum.",
+                "nodesizeStrictAvg cannot exceed averaging sample size. "
+                "We have set nodesizeStrictAvg to be the maximum."
             )
             self.nodesize_strict_avg = avg_sample_size
 
         if self.double_tree_:
             if self.nodesize_strict_avg > split_sample_size:
                 warnings.warn(
-                    "nodesizeStrictAvg cannot exceed splitting sample size. ",
-                    "We have set nodesizeStrictAvg to be the maximum.",
+                    "nodesizeStrictAvg cannot exceed splitting sample size. "
+                    "We have set nodesizeStrictAvg to be the maximum."
                 )
                 self.nodesize_strict_avg = split_sample_size
             if self.nodesize_strict_spl > avg_sample_size:
                 warnings.warn(
-                    "nodesize_strict_spl cannot exceed averaging sample size. ",
-                    "We have set nodesize_strict_spl to be the maximum.",
+                    "nodesize_strict_spl cannot exceed averaging sample size. "
+                    "We have set nodesize_strict_spl to be the maximum."
                 )
                 self.nodesize_strict_spl = avg_sample_size
 
@@ -412,11 +398,11 @@ class RandomForest(BaseEstimator):
         x: Union[pd.DataFrame, pd.Series, List],
         y: np.ndarray,
         *,
-        interaction_depth: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_INTERACTION_DEPTH,
-        max_depth: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_MAX_DEPTH,
-        max_obs: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_MAX_OBS,
-        mtry: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_MTRY,
-        sampsize: Optional[conint(gt=0, strict=True)] = FitValidator.DEFAULT_SAMPSIZE,
+        interaction_depth: Optional[int] = FitValidator.DEFAULT_INTERACTION_DEPTH,
+        max_depth: Optional[int] = FitValidator.DEFAULT_MAX_DEPTH,
+        max_obs: Optional[int] = FitValidator.DEFAULT_MAX_OBS,
+        mtry: Optional[int] = FitValidator.DEFAULT_MTRY,
+        sampsize: Optional[int] = FitValidator.DEFAULT_SAMPSIZE,
         double_bootstrap: Optional[bool] = FitValidator.DEFAULT_DOUBLE_BOOTSTRAP,
         splitratio: Optional[float] = FitValidator.DEFAULT_SPLITRATIO,
         replace: bool = FitValidator.DEFAULT_REPLACE,
@@ -473,8 +459,6 @@ class RandomForest(BaseEstimator):
         :type seed: *int, optional*
         :rtype: None
         """
-
-        self._validate_existing_parameters()
 
         # Set parameters that depends on existing parameters
         self.splitratio_ = splitratio

@@ -1,3 +1,4 @@
+import os
 import warnings
 from math import ceil
 from typing import Final
@@ -6,6 +7,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import check_X_y
 
+from . import negative_float, negative_integer, positive_float, positive_integer
 from .base_validator import BaseValidator
 
 
@@ -131,6 +133,8 @@ class FitValidator(BaseValidator):
         if mtry > ncols:
             raise ValueError("mtry cannot exceed total amount of features in x.")
 
+        if not positive_integer(mtry):
+            raise ValueError("mtry must be positive_integer")
         return mtry
 
     def validate_sampsize(self, forest, x, **kwargs) -> int:
@@ -151,6 +155,8 @@ class FitValidator(BaseValidator):
         if not self.validate_replace(forest, **kwargs) and sampsize > nrows:
             raise ValueError("You cannot sample without replacement with size more than total number of observations.")
 
+        if not positive_integer(sampsize):
+            raise ValueError("sampsize must be positive integer")
         return sampsize
 
     def validate_double_bootstrap(self, forest, **kwargs) -> bool:
@@ -210,8 +216,10 @@ class FitValidator(BaseValidator):
             max_obs = __class__.DEFAULT_MAX_OBS
 
         if max_obs is None:
-            return y.size
+            max_obs = y.size
 
+        if not positive_integer(max_obs):
+            raise ValueError("max_obs must be positive_integer")
         return max_obs
 
     def validate_max_depth(self, x, **kwargs):
@@ -223,8 +231,10 @@ class FitValidator(BaseValidator):
             max_depth = __class__.DEFAULT_MAX_DEPTH
 
         if max_depth is None:
-            return round(nrows / 2) + 1
+            max_depth = round(nrows / 2) + 1
 
+        if not positive_integer(max_depth):
+            raise ValueError("max_depth must be positive_integer")
         return max_depth
 
     def validate_interaction_depth(self, **kwargs):
@@ -234,25 +244,59 @@ class FitValidator(BaseValidator):
             interaction_depth = __class__.DEFAULT_INTERACTION_DEPTH
 
         if interaction_depth is None:
-            return kwargs["max_depth"]
+            interaction_depth = kwargs["max_depth"]
         else:
             if interaction_depth > kwargs["max_depth"]:
                 warnings.warn(
                     "interaction_depth cannot be greater than max_depth. We have set interaction_depth to max_depth."
                 )
-                return kwargs["max_depth"]
-            else:
-                return interaction_depth
+                interaction_depth = kwargs["max_depth"]
 
-    def __call__(self, _self, x, y, *args, **kwargs):
-        forest = _self
+        if not positive_integer(interaction_depth):
+            raise ValueError("interaction_depth must be positive_integer")
+        return interaction_depth
+
+    def prevalidate(self, forest) -> None:
+        for parameter in [
+            "ntree",
+            "nodesize_spl",
+            "nodesize_avg",
+            "nodesize_strict_spl",
+            "nodesize_strict_avg",
+            "fold_size",
+        ]:
+            if not positive_integer(getattr(forest, parameter)):
+                raise ValueError(f"{parameter} must be positive integer")
+
+        for parameter in ["seed", "nthread", "min_trees_per_fold"]:
+            if negative_integer(getattr(forest, parameter)):
+                raise ValueError(f"{parameter} must be non negative integer")
+
+        if forest.sample_fraction and (
+            not (positive_integer(forest.sample_fraction) or positive_float(forest.sample_fraction))
+        ):
+            raise ValueError("sample_fraction must be positive or None")
+
+        if negative_float(forest.min_split_gain):
+            raise ValueError("min_split_gain must be non negative float")
+
+        if forest.nthread > os.cpu_count():
+            raise ValueError("nthread cannot exceed total cores in the computer: " + str(os.cpu_count()))
+
+        if forest.min_split_gain > 0 and not self.linear:
+            raise ValueError("min_split_gain cannot be set without setting linear to be true.")
+
+    def __call__(self, forest, x, y, *args, **kwargs):
         _, y = check_X_y(x, y, accept_sparse=False)
         x = pd.DataFrame(x).copy()
+
+        self.prevalidate(forest)
 
         if len(args) > 0:
             raise ValueError("There can be only 2 non-keyword arguments: X, y")
 
         # Check if the input dimension of x matches y
+        nrows, _ = x.shape
         if nrows != y.size:
             raise ValueError("The dimension of input dataset x doesn't match the output y.")
 
@@ -262,7 +306,7 @@ class FitValidator(BaseValidator):
         if len(x.columns[x.isnull().all()]) > 0:
             raise ValueError("Training data column cannot be all missing values.")
 
-        if _self.linear and x.isnull().values.any():
+        if forest.linear and x.isnull().values.any():
             raise ValueError("Cannot do imputation splitting with linear.")
 
         kwargs["mtry"] = self.validate_mtry(x, **kwargs)
