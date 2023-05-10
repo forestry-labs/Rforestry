@@ -21,10 +21,10 @@ def test_fit_validator():
     with pytest.raises(ValueError, match="Input y contains NaN."):
         forest.fit(X, y.replace(0, np.NaN))
 
-    # with pytest.raises(ValueError, match="Training data column cannot be all missing values."):
-    #    X_nan = X.copy()
-    #    X_nan["nan_col"] = np.NaN
-    #    forest.fit(X_nan, y)
+    with pytest.raises(ValueError, match="Training data column cannot be all missing values."):
+        X_nan = X.copy()
+        X_nan["nan_col"] = np.NaN
+        forest.fit(X_nan, y)
 
     with pytest.raises(ValueError, match=("There can be only 2 non-keyword arguments: X, y")):
         forest.fit(X, y, 23)

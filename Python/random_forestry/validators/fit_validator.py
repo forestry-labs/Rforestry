@@ -287,7 +287,7 @@ class FitValidator(BaseValidator):
             raise ValueError("min_split_gain cannot be set without setting linear to be true.")
 
     def __call__(self, forest, x, y, *args, **kwargs):
-        _, y = check_X_y(x, y, accept_sparse=False)
+        _, y = check_X_y(x, y, accept_sparse=False, force_all_finite="allow-nan")
         x = pd.DataFrame(x).copy()
 
         self.prevalidate(forest)
