@@ -8,10 +8,6 @@ import statsmodels.api as sm
 from sklearn.model_selection import LeaveOneOut
 
 
-def has_nas(x: pd.DataFrame) -> bool:
-    return x.isnull().values.any()
-
-
 def get_feat_names(x: Union[pd.DataFrame, pd.Series, List]) -> Optional[np.ndarray]:
     if isinstance(x, pd.DataFrame):
         return x.columns.values
@@ -44,17 +40,6 @@ def find_match(arr_a: Union[np.ndarray, List], arr_b: Union[np.ndarray, List]) -
             temp_dict[str(arr_b[index])] = index
 
     return np.array([temp_dict[str(float(val)) if isinstance(val, int) else str(val)] for val in arr_a])
-
-
-def forest_checker(forest) -> None:
-    """
-    Checks if RandomForest object has valid pointer for C++ object.
-    @param object a RandomForest object
-    @return A message if the forest does not have a valid C++ pointer.
-    """
-
-    if (not forest.dataframe_) or (not forest.forest_):
-        raise ValueError("The RandomForest object has invalid ctypes pointers.")
 
 
 # Given a dataframe with Y and Y.hat at least, fits an OLS and gives the LOO

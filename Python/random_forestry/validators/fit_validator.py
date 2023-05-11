@@ -310,33 +310,19 @@ class FitValidator(BaseValidator):
             raise ValueError("Cannot do imputation splitting with linear.")
 
         kwargs["mtry"] = self.validate_mtry(x, **kwargs)
-
         kwargs["splitratio"] = self.validate_splitratio(forest, **kwargs)
-
         kwargs["replace"] = self.validate_replace(forest, **kwargs)
-
         kwargs["double_tree"] = self.validate_double_tree(forest, **kwargs)
-
         kwargs["sampsize"] = self.validate_sampsize(forest, x, **kwargs)
-
         kwargs["double_bootstrap"] = self.validate_double_bootstrap(forest, **kwargs)
-
         kwargs["max_obs"] = self.validate_max_obs(y, **kwargs)
-
         kwargs["max_depth"] = self.validate_max_depth(x, **kwargs)
-
         kwargs["interaction_depth"] = self.validate_interaction_depth(**kwargs)
-
         kwargs["monotonic_constraints"] = self.validate_monotonic_constraints(forest, x, **kwargs)
-
         kwargs["lin_feats"] = self.validate_lin_feats(x, **kwargs)
-
         kwargs["feature_weights"] = self.validate_feature_weights(x, **kwargs)
-
         kwargs["deep_feature_weights"] = self.validate_deep_feature_weights(x, **kwargs)
-
         kwargs["observation_weights"] = self.validate_observation_weights(forest, x, **kwargs)
-
         kwargs["groups"] = self.validate_groups(**kwargs)
 
         return self.function(forest, x, y, **kwargs)
