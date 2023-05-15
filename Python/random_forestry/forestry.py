@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from deepdiff import DeepDiff
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 
@@ -1274,6 +1275,12 @@ class RandomForest(BaseEstimator):
     def __del__(self):
         if hasattr(self, "forest_") and hasattr(self, "dataframe_"):
             extension.delete_forestry(self.forest_, self.dataframe_)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return not bool(DeepDiff(self.__dict__, other.__dict__))
+        else:
+            return False
 
     def _more_tags(self):
         return {

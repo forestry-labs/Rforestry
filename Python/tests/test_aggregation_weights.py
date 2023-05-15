@@ -4,19 +4,8 @@ import numpy as np
 import pytest
 from helpers import get_data
 
-from random_forestry import RandomForest
 
-
-@pytest.fixture
-def forest():
-    forest = RandomForest(seed=432432)
-
-    X, y = get_data()
-
-    forest.fit(X, y)
-    return forest
-
-
+@pytest.mark.forest_parameters(seed=432432)
 def test_predict_settings(forest):
     X, _ = get_data()
 
@@ -25,6 +14,7 @@ def test_predict_settings(forest):
     assert np.array_equal(predictions_1, predictions_2)
 
 
+@pytest.mark.forest_parameters(seed=432432)
 def test_linearity(forest):
     X, _ = get_data()
 
