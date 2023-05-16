@@ -7,15 +7,26 @@ X, y = get_data()
 
 
 def test_properties():
-    assert RandomForest(oob_honest=True).fit(X, y, splitratio=0.3).splitratio_ == 1
+    with pytest.warns(
+        UserWarning, match="oob_honest is set to true, so we will run OOBhonesty rather than standard honesty."
+    ):
+        assert RandomForest(oob_honest=True).fit(X, y, splitratio=0.3).splitratio_ == 1
 
-    assert RandomForest(oob_honest=True).fit(X, y, replace=False).replace_
+    with pytest.warns(UserWarning, match="replace must be set to TRUE to use OOBhonesty, setting this to True now"):
+        assert RandomForest(oob_honest=True).fit(X, y, replace=False).replace_
 
     # assert RandomForest().fit(X, y, splitratio=0, double_tree=True).double_tree_ is False
     # assert RandomForest().fit(X, y, splitratio=0.3, double_tree=True).double_tree_
-    assert RandomForest().fit(X, y, splitratio=1, double_tree=True).double_tree_ is False
+    with pytest.warns(
+        UserWarning, match="Trees cannot be doubled if splitratio is 1. We have set double_tree to False."
+    ):
+        assert RandomForest().fit(X, y, splitratio=1, double_tree=True).double_tree_ is False
 
-    assert RandomForest().fit(X, y, interaction_depth=23, max_depth=4).interaction_depth_ == 4
+    with pytest.warns(
+        UserWarning,
+        match="interaction_depth cannot be greater than max_depth. We have set interaction_depth to max_depth.",
+    ):
+        assert RandomForest().fit(X, y, interaction_depth=23, max_depth=4).interaction_depth_ == 4
 
     # with pytest.raises(ValidationError):
     #    RandomForest(ntree=False)

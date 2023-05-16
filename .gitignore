@@ -46,3 +46,5 @@ _deps
 !**/.gitignore
 !.gitmodules
 *.cbp
+
+**/.coverage

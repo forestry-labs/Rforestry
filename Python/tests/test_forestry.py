@@ -52,7 +52,10 @@ def test_newdata_shuffled_warning(forest: RandomForest):
 def test_equal_predictions(forest: RandomForest):
     X, _ = get_data()
     predictions_1 = forest.predict(X)
-    predictions_2 = forest.predict(X.iloc[:, ::-1])
+    with pytest.warns(
+        UserWarning, match="newdata columns have been reordered so that they match the training feature matrix"
+    ):
+        predictions_2 = forest.predict(X.iloc[:, ::-1])
 
     assert np.array_equal(predictions_1, predictions_2)
 
