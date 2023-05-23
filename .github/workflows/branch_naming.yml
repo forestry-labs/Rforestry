@@ -1,0 +1,23 @@
+name: Branch Naming Policy
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  branch_name:
+    runs-on: ubuntu-latest
+    name: Branch Name Policy
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: AlbertHernandez/branch-name-action@v1.0.2
+        with:
+          branch_pattern: '^[a-z]{2,3}/.*'
+          comment_for_invalid_branch_name: |
+            :no_good: 
+            Ups! This branch name is not following the regex `^[a-z]{2,3}/.*`
+            Please delete this PR, rename the branch to `<author_initials>/<common_sense_branch_name>`, and create new PR.
+          fail_if_invalid_branch_name: true
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
