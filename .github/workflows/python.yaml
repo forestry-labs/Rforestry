@@ -84,6 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
         packages: read
+        pull-requests: write
 
     steps:
       - name: Checkout
@@ -105,10 +106,19 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: ghcr.io/forestry-labs/rforestry/python_build_env:latest
           CIBW_BUILD: cp38-manylinux* cp39-manylinux* cp310-manylinux* cp311-manylinux*
           CIBW_TEST_EXTRAS: test
-          CIBW_TEST_COMMAND: pytest /project/Python/tests -v --color=yes
+          CIBW_TEST_COMMAND: pytest /project/Python/tests --cov-report xml:/host/coverage.xml
         with:
           package-dir: Python/
           output-dir: Python/dist
+
+      - name: Get Coverage 
+        uses: petrovicboban/coverage@1.2
+        with:
+            coverageFile: /coverage.xml
+            thresholdAll: 0.60
+            thresholdModified: 0.60
+            thresholdNew: 0.60
+            token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3

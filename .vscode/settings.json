@@ -39,4 +39,5 @@
         "--sp",
         "./Python/.isort.cfg"
     ],
+    "python.languageServer": "Pylance",
 }

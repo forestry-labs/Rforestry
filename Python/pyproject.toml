@@ -31,10 +31,17 @@ zip-safe = false
 
 [project.optional-dependencies]
 dev = ["bumpver >= 2022.1120", "pip-tools >= 6.12.3"]
-test = ["pytest >= 7.2.2"]
+test = ["pytest >= 7.2.2", "pytest-xdist", "pytest-sugar", "pytest-cov"]
 
 [project.urls]
 Homepage = "https://github.com/forestry-labs/Rforestry#readme"
+
+[tool.pytest.ini_options]
+addopts = "-s --color=yes -v -n auto --cov=random_forestry --cov-report=term-missing"
+testpaths = ["tests"]
+markers = [
+    "forest_parameters: set parameters for RandomForest fixture"
+]
 
 [tool.black]
 line-length = 120
