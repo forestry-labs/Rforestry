@@ -56,6 +56,8 @@ public:
     size_t nthread,
     bool exact,
     bool use_weights,
+    bool hier_shrinkage,
+    double lambda_shrinkage,
     std::vector<size_t>* tree_weights
   );
 

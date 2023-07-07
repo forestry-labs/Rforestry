@@ -7,6 +7,7 @@
 #include <thread>
 #include <mutex>
 #include <armadillo>
+#include <RcppArmadillo.h>
 #define DOPARELLEL true
 
 
@@ -382,6 +383,8 @@ std::unique_ptr< std::vector<double> > forestry::predict(
   size_t nthread,
   bool exact,
   bool use_weights,
+  bool hier_shrinkage,
+  double lambda_shrinkage,
   std::vector<size_t>* tree_weights
 ){
 
@@ -469,7 +472,6 @@ std::unique_ptr< std::vector<double> > forestry::predict(
               for (size_t l=0; l<numObservations; l++) {
                 currentTreeCoefficients[l] = std::vector<double>(coefficients->n_cols);
               }
-
               (*currentTree).predict(
                   currentTreePrediction,
                   &currentTreeTerminalNodes,
@@ -479,11 +481,15 @@ std::unique_ptr< std::vector<double> > forestry::predict(
                   weightMatrix,
                   getlinear(),
                   getNaDirection(),
+                  hier_shrinkage,
+                  lambda_shrinkage,
                   seed + i,
                   getMinNodeSizeToSplitAvg()
               );
 
             } else {
+              //Rcpp::Rcout<<"here"<<std::endl;
+              //Rcpp::Rcout << std::flush;
               (*currentTree).predict(
                   currentTreePrediction,
                   &currentTreeTerminalNodes,
@@ -493,6 +499,8 @@ std::unique_ptr< std::vector<double> > forestry::predict(
                   weightMatrix,
                   getlinear(),
                   getNaDirection(),
+                  hier_shrinkage,
+                  lambda_shrinkage,
                   seed + i,
                   getMinNodeSizeToSplitAvg()
               );
@@ -570,7 +578,8 @@ std::unique_ptr< std::vector<double> > forestry::predict(
     );
     allThreads[t] = std::thread(dummyThread);
   }
-
+  Rcpp::Rcout<<"herealso"<<std::endl;
+  Rcpp::Rcout << std::flush;
   std::for_each(
     allThreads.begin(),
     allThreads.end(),

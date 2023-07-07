@@ -421,6 +421,8 @@ Rcpp::List rcpp_cppPredictInterface(
   bool returnWeightMatrix,
   bool use_weights,
   bool use_hold_out_idx,
+  bool hier_shrinkage,
+  double lambda_shrinkage,
   Rcpp::NumericVector tree_weights,
   Rcpp::IntegerVector hold_out_idx
 ){
@@ -514,6 +516,8 @@ Rcpp::List rcpp_cppPredictInterface(
                                                        threads_to_use,
                                                        false,
                                                        false,
+                                                       hier_shrinkage,
+                                                       lambda_shrinkage,
                                                        NULL);
 
     } else if (aggregation == "terminalNodes") {
@@ -543,6 +547,8 @@ Rcpp::List rcpp_cppPredictInterface(
                                                        threads_to_use,
                                                        exact,
                                                        false,
+                                                       hier_shrinkage,
+                                                       lambda_shrinkage,
                                                        NULL);
     } else {
       // If the weights are zero, we just return NaN's
@@ -561,6 +567,8 @@ Rcpp::List rcpp_cppPredictInterface(
                                 threads_to_use,
                                 exact,
                                 use_weights,
+                                hier_shrinkage,
+                                lambda_shrinkage,
                                 use_weights ? testForestTreeWeights : NULL);
       }
     }
@@ -1119,6 +1127,8 @@ std::vector< std::vector<double> > rcpp_cppImputeInterface(
                                                    testFullForest->getNthread(),
                                                    false,
                                                    false,
+                                                   false,
+                                                   0,
                                                    NULL);
 
   std::vector<double>* testForestPrediction_ =

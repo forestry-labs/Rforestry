@@ -65,6 +65,8 @@ public:
     arma::Mat<double>* weightMatrix = NULL,
     bool linear = false,
     bool naDirection = false,
+    bool hier_shrinkage = false,
+    double lambda_shrinkage = 0,
     unsigned int seed = 44,
     size_t nodesizeStrictAvg = 1,
     std::vector<size_t>* OOBIndex = NULL

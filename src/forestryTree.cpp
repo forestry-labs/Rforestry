@@ -238,6 +238,8 @@ void forestryTree::predict(
     arma::Mat<double>* weightMatrix,
     bool linear,
     bool naDirection,
+    bool hier_shrinkage,
+    double lambda_shrinkage,
     unsigned int seed,
     size_t nodesizeStrictAvg,
     std::vector<size_t>* OOBIndex
@@ -252,21 +254,25 @@ void forestryTree::predict(
   std::vector<size_t> updateIndex(outputPrediction.size());
   rangeGenerator _rangeGenerator(0);
   std::generate(updateIndex.begin(), updateIndex.end(), _rangeGenerator);
+
   (*getRoot()).predict(outputPrediction,
                        terminalNodes,
                        outputCoefficients,
                        &updateIndex,
                        weightMatrix ? getAveragingIndex() : nullptr,
+                       std::numeric_limits<double>::infinity(),
                        xNew,
                        trainingData,
                        weightMatrix,
                        linear,
                        naDirection,
+                       hier_shrinkage,
+                       lambda_shrinkage,
                        getOverfitPenalty(),
                        seed,
                        nodesizeStrictAvg,
                        OOBIndex);
-  //std::cout << "Seed is" << seed << ".\n";
+  std::cout << "Seed is" << seed << ".\n";
 }
 
 
@@ -1648,6 +1654,8 @@ void forestryTree::getOOBPrediction(
     weightMatrix,
     false,
     getNaDirection(),
+    false,
+    0,
     44,
     nodesizeStrictAvg,
     use_training_idx ? &indexInTrain : &OOBIndex

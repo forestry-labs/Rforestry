@@ -1325,6 +1325,8 @@ predict.forestry <- function(object,
                              exact = NULL,
                              trees = NULL,
                              weightMatrix = FALSE,
+                             hier_shrinkage = FALSE,
+                             lambda_shrinkage = 0,
                              ...) {
 
   if (is.null(newdata) && !(aggregation == "oob" || aggregation == "doubleOOB")) {
@@ -1462,6 +1464,8 @@ predict.forestry <- function(object,
                                returnWeightMatrix = weightMatrix,
                                use_weights = use_weights,
                                use_hold_out_idx = TRUE,
+                               hier_shrinkage = hier_shrinkage,
+                               lambda_shrinkage = lambda_shrinkage,
                                tree_weights = tree_weights,
                                hold_out_idx = (holdOutIdx-1)) # Change to 0 indexed for C++
     }, error = function(err) {
@@ -1546,6 +1550,8 @@ predict.forestry <- function(object,
                                returnWeightMatrix = weightMatrix,
                                use_weights = use_weights,
                                use_hold_out_idx = FALSE,
+                               hier_shrinkage = hier_shrinkage,
+                               lambda_shrinkage = lambda_shrinkage,
                                tree_weights = tree_weights,
                                hold_out_idx = c(-1))
     }, error = function(err) {

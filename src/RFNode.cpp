@@ -4,6 +4,7 @@
 #include <mutex>
 #include <thread>
 #include "utils.h"
+#include <RcppArmadillo.h>
 
 std::mutex mutex_weightMatrix;
 
@@ -162,17 +163,35 @@ void RFNode::predict(
   std::vector< std::vector<double> > &outputCoefficients,
   std::vector<size_t>* updateIndex,
   std::vector<size_t>* predictionAveragingIndices,
+  double parentAverageCount,
   std::vector< std::vector<double> >* xNew,
   DataFrame* trainingData,
   arma::Mat<double>* weightMatrix,
   bool linear,
   bool naDirection,
+  bool hier_shrinkage,
+  double lambda_shrinkage,
   double lambda,
   unsigned int seed,
   size_t nodesizeStrictAvg,
   std::vector<size_t>* OOBIndex
 ) {
-
+  
+  Rcpp::Rcout<<"here"<<std::endl;
+  Rcpp::Rcout<<hier_shrinkage<<std::endl;
+  Rcpp::Rcout<<lambda_shrinkage<<std::endl;
+  Rcpp::Rcout<<std::flush;
+  double predictedMean;
+  // Calculate the mean of current node
+  if (getAverageCount() == 0) {
+    predictedMean = std::numeric_limits<double>::quiet_NaN();
+  } else if (!std::isnan(getPredictWeight())) {
+      predictedMean = getPredictWeight();
+  } else {
+    predictedMean = (*trainingData).partitionMean(getAveragingIndex());
+  }
+  Rcpp::Rcout<<predictedMean<<std::endl;
+  Rcpp::Rcout<<std::flush;
   // If the node is a leaf, aggregate all its averaging data samples
   if (is_leaf()) {
 
@@ -185,24 +204,19 @@ void RFNode::predict(
                      trainingData,
                      lambda);
       } else {
-
-        double predictedMean;
-        // Calculate the mean of current node
-        if (getAverageCount() == 0) {
-          predictedMean = std::numeric_limits<double>::quiet_NaN();
-        } else if (!std::isnan(getPredictWeight())) {
-            predictedMean = getPredictWeight();
-        } else {
-          predictedMean = (*trainingData).partitionMean(getAveragingIndex());
-        }
-
         // Give all updateIndex the mean of the node as prediction values
         for (
           std::vector<size_t>::iterator it = (*updateIndex).begin();
           it != (*updateIndex).end();
           ++it
         ) {
-            outputPrediction[*it] = predictedMean;
+            if(hier_shrinkage){
+              outputPrediction[*it] += predictedMean/(1+lambda_shrinkage/parentAverageCount);
+            } else{
+              Rcpp::Rcout<<"standard"<<std::endl;
+              Rcpp::Rcout<<std::flush;
+              outputPrediction[*it] = predictedMean;
+            }
         }
     }
 
@@ -244,7 +258,7 @@ void RFNode::predict(
         (*terminalNodes)[*it] = node_id;
       }
     }
-
+    Rcpp::Rcout<<"bottom"<<std::endl;
   // If not a leaf then we need to separate the prediction tasks
   } else {
 
@@ -484,7 +498,19 @@ void RFNode::predict(
           }
 
       }
-
+    Rcpp::Rcout<<"leaf"<<std::endl;
+    Rcpp::Rcout<<std::flush;
+    if(hier_shrinkage){
+      for (
+          std::vector<size_t>::iterator it = (*updateIndex).begin();
+          it != (*updateIndex).end();
+          ++it
+        ) {
+          double current_level_weight =  (1+lambda_shrinkage / predictionAveragingIndices->size()); 
+          double parent_level_weight = (1+lambda_shrinkage/parentAverageCount);
+          outputPrediction[*it] += predictedMean*(parent_level_weight-current_level_weight);
+      }
+    }
       // Recursively get predictions from its children
     if ((*leftPartitionIndex).size() > 0) {
       (*getLeftChild()).predict(
@@ -493,11 +519,14 @@ void RFNode::predict(
           outputCoefficients,
           leftPartitionIndex,
           leftPartitionAveragingIndex,
+          predictionAveragingIndices->size(),
           xNew,
           trainingData,
           weightMatrix,
           linear,
           naDirection,
+          hier_shrinkage,
+          lambda_shrinkage,
           lambda,
           seed,
           nodesizeStrictAvg,
@@ -512,11 +541,14 @@ void RFNode::predict(
           outputCoefficients,
           rightPartitionIndex,
           rightPartitionAveragingIndex,
+          predictionAveragingIndices->size(),
           xNew,
           trainingData,
           weightMatrix,
           linear,
           naDirection,
+          hier_shrinkage,
+          lambda_shrinkage,
           lambda,
           seed,
           nodesizeStrictAvg,
@@ -623,13 +655,7 @@ bool RFNode::is_leaf() {
 }
 
 size_t RFNode::getAverageCountAlways() {
-  if(is_leaf()) {
-    return _averageCount;
-  }
-  else {
-    return (*getRightChild()).getAverageCountAlways() +
-      (*getLeftChild()).getAverageCountAlways();
-  }
+  return _averageCount;
 }
 
 void RFNode::printSubtree(int indentSpace) {

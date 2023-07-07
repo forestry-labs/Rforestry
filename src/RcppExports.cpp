@@ -95,8 +95,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // rcpp_cppPredictInterface
-Rcpp::List rcpp_cppPredictInterface(SEXP forest, Rcpp::List x, std::string aggregation, int seed, int nthread, bool exact, bool returnWeightMatrix, bool use_weights, bool use_hold_out_idx, Rcpp::NumericVector tree_weights, Rcpp::IntegerVector hold_out_idx);
-RcppExport SEXP _Rforestry_rcpp_cppPredictInterface(SEXP forestSEXP, SEXP xSEXP, SEXP aggregationSEXP, SEXP seedSEXP, SEXP nthreadSEXP, SEXP exactSEXP, SEXP returnWeightMatrixSEXP, SEXP use_weightsSEXP, SEXP use_hold_out_idxSEXP, SEXP tree_weightsSEXP, SEXP hold_out_idxSEXP) {
+Rcpp::List rcpp_cppPredictInterface(SEXP forest, Rcpp::List x, std::string aggregation, int seed, int nthread, bool exact, bool returnWeightMatrix, bool use_weights, bool use_hold_out_idx, bool hier_shrinkage, double lambda_shrinkage, Rcpp::NumericVector tree_weights, Rcpp::IntegerVector hold_out_idx);
+RcppExport SEXP _Rforestry_rcpp_cppPredictInterface(SEXP forestSEXP, SEXP xSEXP, SEXP aggregationSEXP, SEXP seedSEXP, SEXP nthreadSEXP, SEXP exactSEXP, SEXP returnWeightMatrixSEXP, SEXP use_weightsSEXP, SEXP use_hold_out_idxSEXP, SEXP hier_shrinkageSEXP, SEXP lambda_shrinkageSEXP, SEXP tree_weightsSEXP, SEXP hold_out_idxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -109,9 +109,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type returnWeightMatrix(returnWeightMatrixSEXP);
     Rcpp::traits::input_parameter< bool >::type use_weights(use_weightsSEXP);
     Rcpp::traits::input_parameter< bool >::type use_hold_out_idx(use_hold_out_idxSEXP);
+    Rcpp::traits::input_parameter< bool >::type hier_shrinkage(hier_shrinkageSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda_shrinkage(lambda_shrinkageSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type tree_weights(tree_weightsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type hold_out_idx(hold_out_idxSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_cppPredictInterface(forest, x, aggregation, seed, nthread, exact, returnWeightMatrix, use_weights, use_hold_out_idx, tree_weights, hold_out_idx));
+    rcpp_result_gen = Rcpp::wrap(rcpp_cppPredictInterface(forest, x, aggregation, seed, nthread, exact, returnWeightMatrix, use_weights, use_hold_out_idx, hier_shrinkage, lambda_shrinkage, tree_weights, hold_out_idx));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -246,7 +248,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_Rforestry_rcpp_cppDataFrameInterface", (DL_FUNC) &_Rforestry_rcpp_cppDataFrameInterface, 17},
     {"_Rforestry_rcpp_cppBuildInterface", (DL_FUNC) &_Rforestry_rcpp_cppBuildInterface, 45},
-    {"_Rforestry_rcpp_cppPredictInterface", (DL_FUNC) &_Rforestry_rcpp_cppPredictInterface, 11},
+    {"_Rforestry_rcpp_cppPredictInterface", (DL_FUNC) &_Rforestry_rcpp_cppPredictInterface, 13},
     {"_Rforestry_rcpp_OBBPredictInterface", (DL_FUNC) &_Rforestry_rcpp_OBBPredictInterface, 1},
     {"_Rforestry_rcpp_OBBPredictionsInterface", (DL_FUNC) &_Rforestry_rcpp_OBBPredictionsInterface, 8},
     {"_Rforestry_rcpp_getObservationSizeInterface", (DL_FUNC) &_Rforestry_rcpp_getObservationSizeInterface, 1},
