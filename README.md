@@ -18,7 +18,7 @@ Rforestry is a fast implementation of Honest Random Forests, Gradient Boosting, 
 ## Developing Rforestry: clean macOS quickstart dependances install + building steps
 1. Install R, then install RStudio https://posit.co/download/rstudio-desktop/
 2. Install GFortran [gfortran-12.2-universal](https://mac.r-project.org/tools/gfortran-12.2-universal.pkg) from https://mac.r-project.org/tools/. It will install libraries to /opt/gfortran/lib
-3. Console: `git clone https://github.com/forestry-labs/Rforestry.git`
+3. Console: clone the repo with submodules `git clone --recursive https://github.com/forestry-labs/Rforestry.git`
 4. Open RStudio, "Create a project" -> "Existing Directory" -> `Rforestry/R` folder.
 5. RStudio: open "Console" tab (bottom left corner), install R dependances: `install.packages(c("devtools","visNetwork","glmnet","onehot","pROC","RcppArmadillo","RcppThread","mvtnorm"))`.
 6. RStudio: open "Build" tab (top right corner), click "Install", then click "Test". Rforestry R library is built and tested!
