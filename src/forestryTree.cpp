@@ -843,15 +843,27 @@ void forestryTree::recursivePartition(
 
     // Update the monotonity constraints before we recursively split
     if (monotone_splits) {
+      if(monotone_details.monotoneAvg){
         updateMonotoneConstraints(
           monotone_details,
           monotonic_details_left,
           monotonic_details_right,
           (*trainingData->getMonotonicConstraints()),
-          trainingData->partitionMean(&splittingLeftPartitionIndex),
+          trainingData->partitionMean(&averagingLeftPartitionIndex), //sc - should it not be the averaging set here?
+          trainingData->partitionMean(&averagingRightPartitionIndex),
+          bestSplitFeature
+        );
+      } else{
+        updateMonotoneConstraints(
+          monotone_details,
+          monotonic_details_left,
+          monotonic_details_right,
+          (*trainingData->getMonotonicConstraints()),
+          trainingData->partitionMean(&splittingLeftPartitionIndex), //sc - should it not be the averaging set here?
           trainingData->partitionMean(&splittingRightPartitionIndex),
           bestSplitFeature
         );
+      }
     }
 
     // If no missing exist at the split node, randomly select a direction with
