@@ -44,6 +44,7 @@ endif()
 set_target_properties(extension PROPERTIES CXX_VISIBILITY_PRESET "hidden" CUDA_VISIBILITY_PRESET "hidden")
 
 target_include_directories(extension PRIVATE src)
+target_include_directories(extension PRIVATE src/include)
 
 # VERSION_INFO is defined by setup.py and passed into the C++ code as a
 # define (VERSION_INFO) here.
