@@ -1,5 +1,5 @@
 library(testthat)
-test_that("Tests that saving RF and laoding it works", {
+test_that("Tests that saving RF and loading it works", {
   context("Save and Load RF")
 
   set.seed(238943202)

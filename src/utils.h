@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <cmath>
 
+class forestry;
+
 void print_vector(
   std::vector<size_t> v
 );
@@ -71,6 +73,8 @@ struct tree_info {
   // exact = TRUE as we must aggregate the trees in the right order)
 };
 
+typedef std::vector<tree_info> tree_info_vector;
+
 // Contains the information to help with monotonic constraints on splitting
 struct monotonic_info {
   // Contains the monotonic constraints on each variable
@@ -94,5 +98,11 @@ struct monotonic_info {
     monotoneAvg = false;
   };
 };
+
+/**
+ * Saving forest in Treelite JSON format
+ * https://treelite.readthedocs.io/en/latest/tutorials/json_import.html
+*/
+std::string exportTreeliteJson(forestry& forest, const std::vector<double>& colSds, const std::vector<double>& colMeans);
 
 #endif //FORESTRYCPP_UTILS_H

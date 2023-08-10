@@ -170,6 +170,17 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// rcpp_ExportTreeliteJson
+Rcpp::String rcpp_ExportTreeliteJson(Rcpp::S4 forestParamR);
+RcppExport SEXP _Rforestry_rcpp_ExportTreeliteJson(SEXP forestParamRSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::S4 >::type forestParamR(forestParamRSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_ExportTreeliteJson(forestParamR));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpp_CppToR_translator
 Rcpp::List rcpp_CppToR_translator(SEXP forest);
 RcppExport SEXP _Rforestry_rcpp_CppToR_translator(SEXP forestSEXP) {
@@ -255,6 +266,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Rforestry_rcpp_OBBPredictionsInterface", (DL_FUNC) &_Rforestry_rcpp_OBBPredictionsInterface, 10},
     {"_Rforestry_rcpp_getObservationSizeInterface", (DL_FUNC) &_Rforestry_rcpp_getObservationSizeInterface, 1},
     {"_Rforestry_rcpp_AddTreeInterface", (DL_FUNC) &_Rforestry_rcpp_AddTreeInterface, 2},
+    {"_Rforestry_rcpp_ExportTreeliteJson", (DL_FUNC) &_Rforestry_rcpp_ExportTreeliteJson, 1},
     {"_Rforestry_rcpp_CppToR_translator", (DL_FUNC) &_Rforestry_rcpp_CppToR_translator, 1},
     {"_Rforestry_rcpp_reconstructree", (DL_FUNC) &_Rforestry_rcpp_reconstructree, 42},
     {"_Rforestry_rcpp_cppImputeInterface", (DL_FUNC) &_Rforestry_rcpp_cppImputeInterface, 3},

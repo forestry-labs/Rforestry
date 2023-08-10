@@ -733,6 +733,31 @@ void rcpp_AddTreeInterface(
 }
 
 // [[Rcpp::export]]
+Rcpp::String rcpp_ExportTreeliteJson(
+    Rcpp::S4 forestParamR
+){
+  try {
+    SEXP forestPointerR = forestParamR.slot("forest");
+    Rcpp::XPtr<forestry> forestPtr(forestPointerR);
+
+    Rcpp::NumericVector colSdsR = forestParamR.slot("colSd");
+    std::vector<double> colSds(colSdsR.begin(), colSdsR.end());
+
+    Rcpp::NumericVector colMeansR = forestParamR.slot("colMeans");
+    std::vector<double> colMeans(colMeansR.begin(), colMeansR.end());
+
+    return Rcpp::String(exportTreeliteJson(*forestPtr, colSds, colMeans));
+
+  } catch(const std::exception& err) {
+    forward_exception_to_r(err);
+  } catch(...) {
+    ::Rf_error("c++ exception (unknown reason)");
+  }
+
+  return Rcpp::String();
+}
+
+// [[Rcpp::export]]
 Rcpp::List rcpp_CppToR_translator(
     SEXP forest
 ){
