@@ -1,5 +1,5 @@
 library(testthat)
 library(Rforestry)
-library(rjson)
+library(jsonlite)
 
 test_check("Rforestry")

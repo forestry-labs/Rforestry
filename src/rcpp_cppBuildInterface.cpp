@@ -733,7 +733,7 @@ void rcpp_AddTreeInterface(
 }
 
 // [[Rcpp::export]]
-Rcpp::String rcpp_ExportTreeliteJson(
+Rcpp::String rcpp_ExportJson(
     Rcpp::S4 forestParamR
 ){
   try {

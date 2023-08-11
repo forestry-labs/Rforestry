@@ -64,10 +64,6 @@ double square(
   return (x*x);
 }
 
-/**
- * Returns Treelite JSON representation of the forest
- * Does not support linear or hierShinkage trees
-*/
 std::string exportTreeliteJson(forestry& forest, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
     if (forest.getlinear()) {
       throw std::runtime_error("Linear forest export is not supported");
@@ -93,8 +89,6 @@ std::string exportTreeliteJson(forestry& forest, const std::vector<double>& colS
     w.Key("average_tree_output"); w.Bool(true);
 
     /**
-      * https://treelite.readthedocs.io/en/latest/tutorials/json_import.html
-      *
       * kBinaryClfRegr
       * Catch-all task type encoding all tasks that are not multi-class classification, such as binary classification, regression, and learning-to-rank.
       * The kBinaryClfRegr task type implies the following constraints on the task parameters: output_type=float, grove_per_class=false, num_class=1, leaf_vector_size=1
@@ -157,7 +151,6 @@ std::string exportTreeliteJson(forestry& forest, const std::vector<double>& colS
             w.EndArray();
 
             /**
-             * https://treelite.readthedocs.io/en/latest/tutorials/json_import.html
              * When the test criteron ([Feature value] in [categories_list]) is evaluated to be true, the prediction function traverses to the left child node (if categories_list_right_child=false)
             */
             w.Key("categories_list_right_child"); w.Bool(false);

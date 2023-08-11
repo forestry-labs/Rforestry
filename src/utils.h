@@ -100,8 +100,8 @@ struct monotonic_info {
 };
 
 /**
- * Saving forest in Treelite JSON format
- * https://treelite.readthedocs.io/en/latest/tutorials/json_import.html
+ * Returns Treelite JSON representation of the forest
+ * Does not support linear trees
 */
 std::string exportTreeliteJson(forestry& forest, const std::vector<double>& colSds, const std::vector<double>& colMeans);
 
