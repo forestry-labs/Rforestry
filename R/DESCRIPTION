@@ -38,6 +38,7 @@ RoxygenNote: 7.2.3
 SystemRequirements: C++11
 Suggests:
     testthat,
+    jsonlite,
     knitr,
     rmarkdown,
     mvtnorm
