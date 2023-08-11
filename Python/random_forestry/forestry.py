@@ -1392,6 +1392,12 @@ class RandomForest:
         with open(filename, "rb") as input_file:
             return pickle.load(input_file)  # nosec B301
 
+    def export_json(self):
+        """
+        Export forest to Treelite JSON string
+        """
+        return extension.export_json(self.forest, self.processed_dta.col_sd, self.processed_dta.col_means)
+
     def __del__(self):
         # Free the pointers to foretsry and dataframe
         extension.delete_forestry(self.forest, self.dataframe)

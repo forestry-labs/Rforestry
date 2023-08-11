@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -5,14 +7,9 @@
 #include "forestry.h"
 #include "utils.h"
 
-#ifndef FORESTRYCPP_API_H
-#define FORESTRYCPP_API_H
-
-#endif //FORESTRYCPP_API_H
-
 
 extern "C" {
-    void* train_forest(
+    forestry* train_forest(
         void* data_ptr,
         size_t ntree,
         bool replace,
@@ -101,7 +98,7 @@ extern "C" {
         unsigned int* tree_seeds
     );
     void predictOOB_forest(
-        void* forest_pt,
+        forestry* forest,
         void* dataframe_pt,
         double* test_data,
         bool doubleOOB,
@@ -115,7 +112,7 @@ extern "C" {
         double lambda_shrinkage
     );
     void predict_forest(
-        void* forest_pt,
+        forestry* forest,
         void* dataframe_pt,
         double* test_data,
         unsigned int seed,
@@ -133,21 +130,16 @@ extern "C" {
         double lambda_shrinkage = 0
     );
     void fill_tree_info(
-        void* forest_ptr,
+        forestry* forest,
         int tree_idx,
         std::vector<double>& treeInfo,
         std::vector<int>& split_info,
         std::vector<int>& av_info
     );
-    void fill_tree_info(
-        void* forest_ptr,
-        int tree_idx,
-        std::vector<double>& treeInfo,
-        std::vector<int>& split_info,
-        std::vector<int>& av_info
-    );
-    size_t get_node_count(void* forest_pt, int tree_idx);
-    size_t get_split_node_count(void* forest_pt, int tree_idx);
-    size_t get_leaf_node_count(void* forest_pt, int tree_idx);
-    void delete_forestry(void* forest_pt, void* dataframe_pt);
+    size_t get_node_count(forestry* forest, int tree_idx);
+    size_t get_split_node_count(forestry* forest, int tree_idx);
+    size_t get_leaf_node_count(forestry* forest, int tree_idx);
+    void delete_forestry(forestry* forest, void* dataframe_pt);
 }
+
+std::string export_json(forestry* forest, const std::vector<double>& colSds, const std::vector<double>& colMeans);

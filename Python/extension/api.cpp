@@ -179,7 +179,7 @@ extern "C" {
     }
     
     
-    void* train_forest(
+    forestry* train_forest(
         void* data_ptr,
         size_t ntree,
         bool replace,
@@ -247,7 +247,7 @@ extern "C" {
     }
     
     void predict_forest(
-        void* forest_pt,
+        forestry* forest,
         void* dataframe_pt,
         double* test_data,
         unsigned int seed,
@@ -264,9 +264,6 @@ extern "C" {
         bool hier_shrinkage,
         double lambda_shrinkage
     ) {   
-    
-    
-        forestry* forest = reinterpret_cast<forestry *>(forest_pt);
         DataFrame* dta_frame = reinterpret_cast<DataFrame *>(dataframe_pt);
     
         forest->setDataframe(dta_frame);
@@ -376,7 +373,7 @@ extern "C" {
     
     
     void predictOOB_forest(
-        void* forest_pt,
+        forestry* forest,
         void* dataframe_pt,
         double* test_data,
         bool doubleOOB,
@@ -390,9 +387,8 @@ extern "C" {
         double lambda_shrinkage
     ) {
         if (verbose)
-            std::cout << forest_pt << std::endl;
+            std::cout << forest << std::endl;
     
-        forestry* forest = reinterpret_cast<forestry *>(forest_pt);
         DataFrame* dta_frame = reinterpret_cast<DataFrame *>(dataframe_pt);
         forest->setDataframe(dta_frame);
     
@@ -456,14 +452,12 @@ extern "C" {
     }
     
     void fill_tree_info(
-        void* forest_ptr,
+        forestry* forest,
         int tree_idx,
         std::vector<double>& treeInfo,
         std::vector<int>& split_info,
         std::vector<int>& av_info
     ) {
-    
-        forestry* forest = reinterpret_cast<forestry *>(forest_ptr);
     
         std::unique_ptr<tree_info> info_holder;
     
@@ -710,24 +704,25 @@ extern "C" {
         return forest;
     
     }
-    
-    size_t get_node_count(void* forest_pt, int tree_idx) {
-        forestry* forest = reinterpret_cast<forestry *>(forest_pt);
+
+    size_t get_node_count(forestry* forest, int tree_idx) {
         return(forest->getForest()->at(tree_idx)->getNodeCount());
     }
     
-    size_t get_split_node_count(void* forest_pt, int tree_idx) {
-        forestry* forest = reinterpret_cast<forestry *>(forest_pt);
+    size_t get_split_node_count(forestry* forest, int tree_idx) {
         return(forest->getForest()->at(tree_idx)->getSplitNodeCount());
     }
     
-    size_t get_leaf_node_count(void* forest_pt, int tree_idx) {
-        forestry* forest = reinterpret_cast<forestry *>(forest_pt);
+    size_t get_leaf_node_count(forestry* forest, int tree_idx) {
         return(forest->getForest()->at(tree_idx)->getLeafNodeCount());
     }
     
-    void delete_forestry(void* forest_pt, void* dataframe_pt) {
+    void delete_forestry(forestry* forest, void* dataframe_pt) {
         delete(reinterpret_cast<DataFrame* >(dataframe_pt));
-        delete(reinterpret_cast<forestry* >(forest_pt));
+        delete(forest);
     }   
+}
+
+std::string export_json(forestry* forest, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
+    return exportJson(*forest, colSds, colMeans);
 }

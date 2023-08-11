@@ -166,7 +166,7 @@ void *reconstructree_wrapper(
 }
 
 py::tuple predictOOB_forest_wrapper(
-    void *forest_pt,
+    forestry* forest,
     void *dataframe_pt,
     py::array_t<double> test_data,
     bool doubleOOB,
@@ -192,7 +192,7 @@ py::tuple predictOOB_forest_wrapper(
     }
 
     predictOOB_forest(
-        forest_pt,
+        forest,
         dataframe_pt,
         static_cast<double *>(test_data.request().ptr),
         doubleOOB,
@@ -232,7 +232,7 @@ void show_array(std::vector<double> array) {
 }
 
 py::tuple predict_forest_wrapper(
-    void *forest_pt,
+    forestry* forest,
     void *dataframe_pt,
     py::array_t<double> test_data,
     unsigned int seed,
@@ -259,7 +259,7 @@ py::tuple predict_forest_wrapper(
     std::vector<double> coefficients_vector(n_coefficients);
 
     predict_forest(
-        forest_pt,
+        forest,
         dataframe_pt,
         static_cast<double *>(test_data.request().ptr),
         seed,
@@ -285,7 +285,7 @@ py::tuple predict_forest_wrapper(
 }
 
 void fill_tree_info_wrapper(
-    void *forest_ptr,
+    forestry* forest,
     int tree_idx,
     py::array_t<double> treeInfo,
     py::array_t<int> split_info,
@@ -296,7 +296,7 @@ void fill_tree_info_wrapper(
     auto av_info_vector = create_vector_from_numpy_array(av_info);
 
     fill_tree_info(
-        forest_ptr,
+        forest,
         tree_idx,
         treeInfo_vector,
         split_info_vector,
@@ -308,20 +308,22 @@ void fill_tree_info_wrapper(
     copy_vector_to_numpy_array(av_info_vector, av_info);
 }
 
-size_t getTreeNodeCount(void *forest_ptr, int tree_idx) {
-    return get_node_count(forest_ptr,tree_idx);
-}
+std::string export_json_wrapper(forestry* forest, py::array_t<double> colSdsNp, py::array_t<double> colMeansNp) {
+    auto colSds = create_vector_from_numpy_array(colSdsNp);
+    auto colMeans = create_vector_from_numpy_array(colMeansNp);
 
-size_t getTreeSplitNodeCount(void *forest_ptr, int tree_idx) {
-    return get_split_node_count(forest_ptr,tree_idx);
-}
-
-size_t getTreeLeafNodeCount(void *forest_ptr, int tree_idx) {
-    return get_leaf_node_count(forest_ptr,tree_idx);
+    return export_json(forest, colSds, colMeans);
 }
 
 PYBIND11_MODULE(extension, m)
 {
+    py::class_<forestry>(m, "forestry", py::dynamic_attr())
+        .def(py::init([]() {
+            throw py::value_error("forestry instances cannot be created from python");
+            return nullptr;
+        })
+    );
+
     m.doc() = R"pbdoc(
         RForestry Python extension module
         -----------------------
@@ -334,7 +336,7 @@ PYBIND11_MODULE(extension, m)
            vector_get
     )pbdoc";
 
-    m.def("train_forest", &train_forest, R"pbdoc(
+    m.def("train_forest", &train_forest, py::return_value_policy::reference, R"pbdoc(
         Some help text here
     
         Some other explanation about the train_forest function.
@@ -344,17 +346,17 @@ PYBIND11_MODULE(extension, m)
 
         Some other explanation about the get_data function.
     )pbdoc");
-    m.def("get_tree_node_count", &getTreeNodeCount, R"pbdoc(
+    m.def("get_tree_node_count", &get_node_count, R"pbdoc(
         Some help text here
 
         Some other explanation about the getTreeNodeCount function.
     )pbdoc");
-    m.def("get_tree_split_count", &getTreeSplitNodeCount, R"pbdoc(
+    m.def("get_tree_split_count", &get_split_node_count, R"pbdoc(
         Some help text here
 
         Some other explanation about the getTreeSplitNodeCount function.
     )pbdoc");
-    m.def("get_tree_leaf_count", &getTreeLeafNodeCount, R"pbdoc(
+    m.def("get_tree_leaf_count", &get_leaf_node_count, R"pbdoc(
         Some help text here
 
         Some other explanation about the getTreeLeafNodeCount function.
@@ -383,6 +385,9 @@ PYBIND11_MODULE(extension, m)
         Some help text here
 
         Some other explanation about the fill_tree_info function.
+    )pbdoc");
+    m.def("export_json", &export_json_wrapper, R"pbdoc(
+        Export forest to Treelite JSON string
     )pbdoc");
 
 #ifdef VERSION_INFO
