@@ -746,7 +746,7 @@ Rcpp::String rcpp_ExportJson(
     Rcpp::NumericVector colMeansR = forestParamR.slot("colMeans");
     std::vector<double> colMeans(colMeansR.begin(), colMeansR.end());
 
-    return Rcpp::String(exportTreeliteJson(*forestPtr, colSds, colMeans));
+    return Rcpp::String(exportJson(*forestPtr, colSds, colMeans));
 
   } catch(const std::exception& err) {
     forward_exception_to_r(err);

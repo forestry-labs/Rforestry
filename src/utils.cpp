@@ -64,7 +64,7 @@ double square(
   return (x*x);
 }
 
-std::string exportTreeliteJson(forestry& forest, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
+std::string exportJson(forestry& forest, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
     if (forest.getlinear()) {
       throw std::runtime_error("Linear forest export is not supported");
     }
