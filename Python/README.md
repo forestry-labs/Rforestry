@@ -28,12 +28,23 @@ For full documentation, see the documentation site (https://random-forestry.read
 git clone --recursive https://github.com/forestry-labs/Rforestry.git
 cd Rforestry/Python
 
-conda create -n rforestry python pandas build pytest pytest-xdist pytest-sugar pytest-cov
+conda create -n rforestry python pandas build pytest pytest-xdist pytest-sugar pytest-cov mypy
 conda activate rforestry
 
 python -m build --sdist
 pip install dist/random-forestry-*.tar.gz
 pytest tests/
+```
+4. To be able to run and debug via IDE without full package installation, run this script from the same `Rforestry/Python` folder, it will generate binary of the C++ extension and Python stubs for it:
+```bash
+mkdir build
+
+pushd build
+cmake -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=../random_forestry ../extension
+cmake --build .
+popd
+
+PYTHONPATH=random_forestry stubgen -m extension -o .
 ```
 
 
@@ -45,7 +56,7 @@ Then the python code can be called:
 import numpy as np
 import pandas as pd
 from random import randrange
-from Rforestry import RandomForest
+from random_forestry import RandomForest
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
 
