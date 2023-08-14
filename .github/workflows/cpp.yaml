@@ -25,7 +25,7 @@ jobs:
       - name: Lint
         working-directory: src/
         run: |
-          clang-tidy *.cpp -header-filter="^.*/src/.*" --use-color -- -Iinclude -I/usr/lib/R/site-library/RcppArmadillo/include -I/usr/lib/R/site-library/Rcpp/include -I/usr/share/R/include -I/RcppThread-2.1.2/inst/include
+          clang-tidy *.cpp -header-filter="^.*/src/.*" --use-color -- -Irapidjson/include -I/usr/lib/R/site-library/RcppArmadillo/include -I/usr/lib/R/site-library/Rcpp/include -I/usr/share/R/include -I/RcppThread-2.1.2/inst/include
   testing:
     runs-on: ubuntu-22.04
     steps:
