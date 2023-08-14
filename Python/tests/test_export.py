@@ -17,7 +17,7 @@ def test_export_json():
     assert type(json_obj) == dict
     assert json_obj['num_feature'] == 4
     assert json_obj['task_type'] == 'kBinaryClfRegr'
-    assert json_obj['average_tree_output'] == True
+    assert json_obj['average_tree_output']
     assert json_obj['task_param'] == {'grove_per_class': False, 'leaf_vector_size': 1, 'num_class': 1,
                                       'output_type': 'float'}
     assert json_obj['model_param'] == {'global_bias': 0.0, 'pred_transform': 'identity'}
