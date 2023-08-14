@@ -10,4 +10,7 @@
 	path = tests/cpp/include/Catch2
 	url = https://github.com/catchorg/Catch2.git
 	branch = devel
-
+[submodule "rapidjson"]
+	path = src/rapidjson
+	url = https://github.com/Tencent/rapidjson.git
+	branch = master
