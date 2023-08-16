@@ -86,7 +86,7 @@ void *get_data_wrapper(
     );
 }
 
-void *reconstructree_wrapper(
+forestry *reconstructree_wrapper(
     void *data_ptr,
     size_t ntree,
     bool replace,
@@ -361,7 +361,7 @@ PYBIND11_MODULE(extension, m)
 
         Some other explanation about the getTreeLeafNodeCount function.
     )pbdoc");
-    m.def("reconstruct_tree", &reconstructree_wrapper, R"pbdoc(
+    m.def("reconstruct_tree", &reconstructree_wrapper, py::return_value_policy::reference, R"pbdoc(
         Some help text here
 
         Some other explanation about the reconstructree function.

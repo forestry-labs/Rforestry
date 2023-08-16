@@ -498,7 +498,7 @@ extern "C" {
     }
     
     
-    void* reconstructree(
+    forestry* reconstructree(
         void* data_ptr,
         size_t ntree,
         bool replace,

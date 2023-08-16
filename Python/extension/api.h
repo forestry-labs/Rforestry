@@ -58,7 +58,7 @@ extern "C" {
         size_t numColumns,
         unsigned int seed
     );
-    void* reconstructree(
+    forestry* reconstructree(
         void* data_ptr,
         size_t ntree,
         bool replace,
