@@ -20,7 +20,7 @@ class ProcessedDta:  # pylint: disable=too-many-instance-attributes
     linear_feature_cols: np.ndarray = field(default_factory=lambda: np.array(0))
     group_memberships: np.ndarray = field(default_factory=lambda: np.array(0))
     col_means: np.ndarray = field(default_factory=lambda: np.array(0))
-    col_sd: np.ndarray = field(default_factory=lambda: np.array(1))
+    col_sd: np.ndarray = field(default_factory=lambda: np.array(0))
     has_nas: bool = False
     na_direction: bool = False
     n_observations: int = 0

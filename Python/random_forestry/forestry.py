@@ -524,9 +524,7 @@ class RandomForest:
         if categorical_feature_cols.size != 0:
             monotonic_constraints[categorical_feature_cols] = 0
 
-        # Final value will be calculated as: value * col_sd + col_means
-        col_means = np.repeat(0.0, ncol + 1)
-        col_sd = np.repeat(1.0, ncol + 1)
+        col_means = col_sd = np.repeat(0.0, ncol + 1)
         if self.scale:
             processed_x, y, col_means, col_sd = preprocessing.scale(x, y, processed_x, categorical_feature_cols)
 

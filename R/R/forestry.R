@@ -787,7 +787,7 @@ forestry <- function(x,
 
   # Create vectors with the column means and SD's for scaling
   colMeans <- rep(0, ncol(x)+1)
-  colSd <- rep(1, ncol(x)+1)
+  colSd <- rep(0, ncol(x)+1)
 
   #Translating interactionVariables to featureWeights syntax
   if(is.null(featureWeights)) {
