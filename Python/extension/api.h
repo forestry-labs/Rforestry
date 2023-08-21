@@ -142,4 +142,4 @@ extern "C" {
     void delete_forestry(forestry* forest, void* dataframe_pt);
 }
 
-std::string export_json(forestry* forest, const std::vector<double>& colSds, const std::vector<double>& colMeans);
+std::string export_json(forestry* forest, bool scale, const std::vector<double>& colSds, const std::vector<double>& colMeans);

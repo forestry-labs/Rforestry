@@ -103,6 +103,6 @@ struct monotonic_info {
  * Returns Treelite JSON representation of the forest
  * Does not support linear trees
 */
-std::string exportJson(forestry& forest, const std::vector<double>& colSds, const std::vector<double>& colMeans);
+std::string exportJson(forestry& forest, bool scale, const std::vector<double>& colSds, const std::vector<double>& colMeans);
 
 #endif //FORESTRYCPP_UTILS_H

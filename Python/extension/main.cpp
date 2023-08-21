@@ -308,11 +308,11 @@ void fill_tree_info_wrapper(
     copy_vector_to_numpy_array(av_info_vector, av_info);
 }
 
-std::string export_json_wrapper(forestry* forest, py::array_t<double> colSdsNp, py::array_t<double> colMeansNp) {
+std::string export_json_wrapper(forestry* forest, bool scale, py::array_t<double> colSdsNp, py::array_t<double> colMeansNp) {
     auto colSds = create_vector_from_numpy_array(colSdsNp);
     auto colMeans = create_vector_from_numpy_array(colMeansNp);
 
-    return export_json(forest, colSds, colMeans);
+    return export_json(forest, scale, colSds, colMeans);
 }
 
 PYBIND11_MODULE(extension, m)

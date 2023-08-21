@@ -64,7 +64,7 @@ double square(
   return (x*x);
 }
 
-std::string exportJson(forestry& forest, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
+std::string exportJson(forestry& forest, bool scale, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
     if (forest.getlinear()) {
       throw std::runtime_error("Linear forest export is not supported");
     }
@@ -125,8 +125,8 @@ std::string exportJson(forestry& forest, const std::vector<double>& colSds, cons
       std::queue<RFNode*> nodesToProcess;
       nodesToProcess.push(&root);
 
-      auto unscaleUncenter = [&colSds, &colMeans](double value, size_t featureId) -> double {
-        return value * colSds[featureId] + colMeans[featureId];
+      auto unscaleUncenter = [scale, &colSds, &colMeans](double value, size_t featureId) -> double {
+        return !scale ? value : value * colSds[featureId] + colMeans[featureId];
       };
 
       while (!nodesToProcess.empty()) {

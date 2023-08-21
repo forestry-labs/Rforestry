@@ -740,13 +740,19 @@ Rcpp::String rcpp_ExportJson(
     SEXP forestPointerR = forestParamR.slot("forest");
     Rcpp::XPtr<forestry> forestPtr(forestPointerR);
 
+    Rcpp::LogicalVector scaleR = forestParamR.slot("scale");
+    bool scale = false;
+    if (scaleR.length()) {
+      scale = scaleR[0];
+    }
+
     Rcpp::NumericVector colSdsR = forestParamR.slot("colSd");
     std::vector<double> colSds(colSdsR.begin(), colSdsR.end());
 
     Rcpp::NumericVector colMeansR = forestParamR.slot("colMeans");
     std::vector<double> colMeans(colMeansR.begin(), colMeansR.end());
 
-    return Rcpp::String(exportJson(*forestPtr, colSds, colMeans));
+    return Rcpp::String(exportJson(*forestPtr, scale, colSds, colMeans));
 
   } catch(const std::exception& err) {
     forward_exception_to_r(err);

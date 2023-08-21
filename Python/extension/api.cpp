@@ -723,6 +723,6 @@ extern "C" {
     }   
 }
 
-std::string export_json(forestry* forest, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
-    return exportJson(*forest, colSds, colMeans);
+std::string export_json(forestry* forest, bool scale, const std::vector<double>& colSds, const std::vector<double>& colMeans) {
+    return exportJson(*forest, scale, colSds, colMeans);
 }

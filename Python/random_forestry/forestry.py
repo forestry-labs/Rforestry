@@ -1400,7 +1400,7 @@ class RandomForest:
         :return: A string containing forest in Treelite JSON format
         :rtype: str
         """
-        return extension.export_json(self.forest, self.processed_dta.col_sd, self.processed_dta.col_means)
+        return extension.export_json(self.forest, self.scale, self.processed_dta.col_sd, self.processed_dta.col_means)
 
     def __del__(self):
         # Free the pointers to foretsry and dataframe
