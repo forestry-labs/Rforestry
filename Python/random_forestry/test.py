@@ -12,20 +12,18 @@ cat_col = np.random.choice(["a", "b", "c"], size=len(X.index))
 X["CategoricalVar"] = pd.Categorical(cat_col)
 
 # Create a RandomForest object
-fr = RandomForest(ntree=100, linear=True, max_depth=5, overfit_penalty=0.001, nodesize_strict_spl=10, seed=1)
-fr.fit(X.iloc[:, 1:], X.iloc[:, 1], lin_feats=[0, 1])
+fr = RandomForest(ntree=100, linear=True, overfit_penalty=0.001, nodesize_strict_spl=10, seed=1)
+fr.fit(X.iloc[:, 1:], X.iloc[:, 1], max_depth=5, lin_feats=[0, 1])
 
-fr2 = RandomForest(
-    ntree=100, linear=True, max_depth=5, overfit_penalty=0.001, nodesize_strict_spl=10, seed=1, double_bootstrap=True
-)
-fr2.fit(X.iloc[:, 1:], X.iloc[:, 1], lin_feats=[0, 1])
+fr2 = RandomForest(ntree=100, linear=True, overfit_penalty=0.001, nodesize_strict_spl=10, seed=1)
+fr2.fit(X.iloc[:, 1:], X.iloc[:, 1], max_depth=5, lin_feats=[0, 1], double_bootstrap=True)
 
 print("translate the first tree")
 
 fr.translate_tree(0)
-# print(fr.saved_forest[0]["children_left"].size)
+# print(fr.saved_forest_[0]["children_left"].size)
 fr2.translate_tree(0)
-# print(fr2.saved_forest[0])
+# print(fr2.saved_forest_[0])
 
 print("Making predictions")
 preds = fr2.predict(X.iloc[:, 1:], aggregation="doubleOOB", return_weight_matrix=True)
@@ -41,7 +39,7 @@ for k in fr2.get_parameters():
 assert fr2.get_parameters() == fr_load.get_parameters()
 assert np.array_equal(fr2.processed_dta.y, fr_load.processed_dta.y)
 
-print(pd.DataFrame(data=fr2.forest))
+print(pd.DataFrame(data=fr2.forest_))
 
 preds_after = fr_load.predict(return_weight_matrix=True, aggregation="doubleOOB")
 print(preds["weightMatrix"])

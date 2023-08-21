@@ -8,15 +8,80 @@ from numpy.testing import assert_array_equal
 from random_forestry import RandomForest
 
 
+def test_properties():
+    X, y = get_data()
+    with pytest.warns(
+        UserWarning, match="oob_honest is set to true, so we will run OOBhonesty rather than standard honesty."
+    ):
+        assert RandomForest(oob_honest=True).fit(X, y, splitratio=0.3).splitratio_ == 1
+
+    with pytest.warns(UserWarning, match="replace must be set to TRUE to use OOBhonesty, setting this to True now"):
+        assert RandomForest(oob_honest=True).fit(X, y, replace=False).replace_
+
+    with pytest.raises(RuntimeError, match=re.escape("splitRatio should be inside (0, 1]")):
+        RandomForest().fit(X, y, splitratio=0, double_tree=True)
+
+    assert RandomForest().fit(X, y, splitratio=0.3, double_tree=True).double_tree_
+    with pytest.warns(
+        UserWarning, match="Trees cannot be doubled if splitratio is 0 or 1. We have set double_tree to False."
+    ):
+        assert RandomForest().fit(X, y, splitratio=1, double_tree=True).double_tree_ is False
+
+    with pytest.warns(
+        UserWarning,
+        match="interaction_depth cannot be greater than max_depth. We have set interaction_depth to max_depth.",
+    ):
+        assert RandomForest().fit(X, y, interaction_depth=23, max_depth=4).interaction_depth_ == 4
+
+    with pytest.raises(ValueError, match="ntree must be positive integer"):
+        RandomForest(ntree=False).fit(X, y)
+
+    with pytest.raises(ValueError):
+        RandomForest().fit(X, y, splitratio=1.4)
+
+    with pytest.raises(ValueError):
+        RandomForest(min_split_gain=0.2, linear=False).fit(X, y)
+
+
+@pytest.mark.parametrize("test_input", [0, 3.6, None])
+def test_ntree(test_input):
+    X, y = get_data()
+    with pytest.raises(ValueError, match="^ntree must be positive integer$"):
+        RandomForest(ntree=test_input).fit(X, y)
+
+
+def test_sample_fraction():
+    X, y = get_data()
+    with pytest.raises(ValueError, match="^sample_fraction must be positive or None$"):
+        RandomForest(sample_fraction=-2).fit(X, y)
+        # When sample_fraction=0, it results 'IndexError: vector' - needs to be investigated
+        RandomForest(sample_fraction=0).fit(X, y)
+
+
+@pytest.mark.parametrize("test_input", [0, 3.6, None])
+def test_nodesize_spl(test_input):
+    X, y = get_data()
+    with pytest.raises(ValueError, match="^nodesize_spl must be positive integer$"):
+        RandomForest(nodesize_spl=test_input).fit(X, y)
+
+
+@pytest.mark.parametrize("test_input", [0, 3.6, None])
+def test_nodesize_avg(test_input):
+    X, y = get_data()
+    with pytest.raises(ValueError, match="^nodesize_avg must be positive integer$"):
+        RandomForest(nodesize_avg=test_input).fit(X, y)
+
+
 def test_fit_validator():
+    X, y = get_data()
     forest = RandomForest()
 
-    X, y = get_data()
-
-    with pytest.raises(ValueError, match="The dimension of input dataset x doesn't match the output y."):
+    with pytest.raises(
+        ValueError, match=re.escape("Found input variables with inconsistent numbers of samples: [150, 149]")
+    ):
         forest.fit(X, y.drop(0))
 
-    with pytest.raises(ValueError, match="y contains missing data."):
+    with pytest.raises(ValueError, match="Input y contains NaN."):
         forest.fit(X, y.replace(0, np.NaN))
 
     with pytest.raises(ValueError, match="Training data column cannot be all missing values."):
@@ -24,15 +89,7 @@ def test_fit_validator():
         X_nan["nan_col"] = np.NaN
         forest.fit(X_nan, y)
 
-    with pytest.raises(
-        TypeError,
-        match=re.escape(
-            (
-                "fit() takes 3 positional arguments but 4 positional arguments "
-                "(and 5 keyword-only arguments) were given"
-            )
-        ),
-    ):
+    with pytest.raises(ValueError, match="There can be only 2 non-keyword arguments: X, y"):
         forest.fit(X, y, 23)
 
     with pytest.raises(ValueError, match="monotonic_constraints must have the size of x"):
@@ -43,16 +100,15 @@ def test_fit_validator():
     with pytest.raises(ValueError, match="monotonic_constraints must be either 1, 0, or -1"):
         forest.fit(X, y, monotonic_constraints=monotonic_constraints)
 
-    forest.set_parameters(linear=True)
+    forest.set_params(linear=True)
     monotonic_constraints = np.array([0] * X.shape[1])
     monotonic_constraints[0] = 1
     with pytest.raises(ValueError, match="Cannot use linear splitting with monotonic_constraints"):
         forest.fit(X, y, monotonic_constraints=monotonic_constraints)
 
     observation_weights = np.array([0] * X.shape[0])
-    forest.set_parameters(replace=True)
     with pytest.raises(ValueError, match="There must be at least one non-zero weight in observation_weights"):
-        forest.fit(X, y, observation_weights=observation_weights)
+        forest.fit(X, y, observation_weights=observation_weights, replace=True)
 
     observation_weights = np.array([1] * X.shape[0])
     with pytest.raises(ValueError, match=re.escape("observation_weights must have length len(x)")):

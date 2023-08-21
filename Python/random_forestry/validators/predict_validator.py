@@ -3,116 +3,116 @@ from typing import Final, List, Union
 
 import numpy as np
 import pandas as pd
+from sklearn.utils.validation import check_array, check_is_fitted
 
-from .. import preprocessing
 from .base_validator import BaseValidator
 
 
 class PredictValidator(BaseValidator):
-    DEFAULT_NEWDATA: Final = None
+    DEFAULT_X: Final = None
     DEFAULT_AGGREGATION: Final[str] = "average"
 
-    def get_newdata(self, *args, **kwargs) -> Union[pd.DataFrame, pd.Series, List, None]:
-        if len(args) > 2:
-            raise TypeError(f"predict() takes from 1 to 2 positional arguments but {len(args)} were given")
-        if len(args) == 2:
-            if "newdata" in kwargs:
-                raise AttributeError("newdata specified both in args and kwargs")
-            return args[1]
-        return kwargs.get("newdata", __class__.DEFAULT_NEWDATA)
+    @staticmethod
+    def get_X(*args, **kwargs) -> Union[pd.DataFrame, pd.Series, List, None]:
+        if len(args) > 1:
+            raise TypeError(f"predict() takes 0 or 1 positional argument but {len(args)} were given")
 
-    def validate_newdata(self, *args, **kwargs) -> pd.DataFrame:
-        _self = args[0]
-        newdata = self.get_newdata(*args, **kwargs)
+        if "X" in kwargs:
+            if len(args) == 1:
+                raise AttributeError("X specified both in args and kwargs")
+            else:
+                return kwargs["X"]
+        else:
+            if len(args) == 1:
+                return args[0]
+            else:
+                return PredictValidator.DEFAULT_X
 
-        if newdata is not None:
-            if not (isinstance(newdata, (pd.DataFrame, pd.Series, list)) or type(newdata).__module__ == np.__name__):
-                raise AttributeError(
-                    "newdata must be a Pandas DataFrame, a numpy array, a Pandas Series, or a regular list"
-                )
+    @staticmethod
+    def validate_X(forest, *args, **kwargs) -> pd.DataFrame:
+        X = PredictValidator.get_X(*args, **kwargs)
 
-            newdata = (pd.DataFrame(newdata)).copy()
-            newdata.reset_index(drop=True, inplace=True)
+        if X is not None:
+            check_array(X, accept_sparse=False, force_all_finite="allow-nan")
+            if not (isinstance(X, (pd.DataFrame, pd.Series, list)) or type(X).__module__ == np.__name__):
+                raise AttributeError("X must be a Pandas DataFrame, a numpy array, a Pandas Series, or a regular list")
 
-            if len(newdata.columns) != _self.processed_dta.num_columns:
+            X = (pd.DataFrame(X)).copy()
+            X.reset_index(drop=True, inplace=True)
+
+            if len(X.columns) != forest.processed_dta_.num_columns:
                 raise ValueError(
-                    f"newdata has {len(newdata.columns)}, "
-                    f"but the forest was trained with {_self.processed_dta.num_columns} columns."
+                    f"X has {len(X.columns)}, "
+                    f"but the forest was trained with {forest.processed_dta_.num_columns} columns."
                 )
 
-            if _self.processed_dta.feat_names is not None:
-                if not set(newdata.columns) == set(_self.processed_dta.feat_names):
-                    raise ValueError("newdata has different columns then the ones the forest was trained with.")
+            if forest.processed_dta_.feat_names is not None:
+                if not set(X.columns) == set(forest.processed_dta_.feat_names):
+                    raise ValueError("X has different columns then the ones the forest was trained with.")
 
                 # If linear is true we can't predict observations with some features missing.
-                if _self.linear and newdata.isnull().values.any():
+                if forest.linear and X.isnull().values.any():
                     raise ValueError("linear does not support missing data")
 
-                if not all(newdata.columns == _self.processed_dta.feat_names):
-                    warnings.warn("newdata columns have been reordered so that they match the training feature matrix")
-                    newdata = newdata[_self.processed_dta.feat_names]
+                if not (X.columns == forest.processed_dta_.feat_names).all():
+                    warnings.warn("X columns have been reordered so that they match the training feature matrix")
+                    X = X[forest.processed_dta_.feat_names]
 
-        return newdata
+        return X
 
-    def validate_exact(self, **kwargs) -> bool:
+    @staticmethod
+    def validate_exact(**kwargs) -> bool:
         if "exact" in kwargs:
             return kwargs["exact"]
-        if kwargs["newdata"] is None:
+        if kwargs.get("X") is None:
             return True
-        if len(kwargs["newdata"].index) > 1e5:
+        if len(kwargs["X"].index) > 1e5:
             return False
         return True
 
-    def validate_trees(self, *args, **kwargs) -> None:
-        _self = args[0]
-
+    @staticmethod
+    def validate_trees(forest, *args, **kwargs) -> None:
         if "trees" in kwargs:
             if not kwargs["exact"] or kwargs["aggregation"] != "average":
-                raise ValueError("When using tree indices, we must have exact = True and aggregation = 'average' ")
+                raise ValueError("When using tree indices, we must have exact = True and aggregation = 'average'")
 
             if any(
-                (not isinstance(i, (int, np.integer))) or (i < -_self.ntree) or (i >= _self.ntree)
+                (not isinstance(i, (int, np.integer))) or (i < -forest.ntree) or (i >= forest.ntree)
                 for i in kwargs["trees"]
             ):
                 raise ValueError("trees must contain indices which are integers between -ntree and ntree-1")
 
-    def validate_aggregation(self, *args, **kwargs) -> str:
-        _self = args[0]
-
-        aggregation = kwargs.get("aggregation", __class__.DEFAULT_AGGREGATION)
+    @staticmethod
+    def validate_aggregation(forest, *args, **kwargs) -> str:
+        aggregation = kwargs.get("aggregation", PredictValidator.DEFAULT_AGGREGATION)
 
         if aggregation == "oob":
             pass
         elif aggregation == "doubleOOB":
-            if not _self.double_bootstrap:
+            if not forest.double_bootstrap_:
                 raise ValueError(
                     "Attempting to do double OOB predictions "
                     "with a forest that was not trained with doubleBootstrap = True"
                 )
         elif aggregation == "coefs":
-            if not _self.linear:
-                raise ValueError("Aggregation can only be linear with setting the parameter linear = True.")
-            if kwargs["newdata"] is None:
-                raise ValueError("When using an aggregation that is not oob or doubleOOB, one must supply newdata")
+            if not forest.linear:
+                raise ValueError("Aggregation can only be linear with setting the parameter linear = True")
+            if kwargs.get("X") is None:
+                raise ValueError("When using an aggregation that is not oob or doubleOOB, one must supply X")
         else:
-            if kwargs["newdata"] is None:
-                raise ValueError("When using an aggregation that is not oob or doubleOOB, one must supply newdata")
+            if kwargs.get("X") is None:
+                raise ValueError("When using an aggregation that is not oob or doubleOOB, one must supply X")
 
         return aggregation
 
-    def __call__(self, *args, **kwargs):
-        _self = args[0]
+    def __call__(self, forest, *args, **kwargs):
+        check_is_fitted(forest)
 
-        preprocessing.forest_checker(_self)
+        kwargs["X"] = PredictValidator.validate_X(forest, *args, **kwargs)
+        kwargs["exact"] = PredictValidator.validate_exact(**kwargs)
+        kwargs["aggregation"] = PredictValidator.validate_aggregation(forest, *args, **kwargs)
+        kwargs["nthread"] = kwargs.get("nthread", forest.nthread)
 
-        kwargs["newdata"] = self.validate_newdata(*args, **kwargs)
+        PredictValidator.validate_trees(forest, *args, **kwargs)
 
-        kwargs["exact"] = self.validate_exact(**kwargs)
-
-        kwargs["aggregation"] = self.validate_aggregation(*args, **kwargs)
-
-        kwargs["nthread"] = kwargs.get("nthread", _self.nthread)
-
-        self.validate_trees(*args, **kwargs)
-
-        return self.function(_self, **kwargs)
+        return self.function(forest, **kwargs)
