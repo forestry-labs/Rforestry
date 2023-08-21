@@ -1394,7 +1394,11 @@ class RandomForest:
 
     def export_json(self):
         """
-        Export forest to Treelite JSON string
+        Exports the trained forest to a string in Treelite JSON format. This can be used for
+        saving a model to load and predict later via other tools which support Treelite JSON forests format.
+
+        :return: A string containing forest in Treelite JSON format
+        :rtype: str
         """
         return extension.export_json(self.forest, self.processed_dta.col_sd, self.processed_dta.col_means)
 
