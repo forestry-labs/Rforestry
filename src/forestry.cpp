@@ -77,8 +77,8 @@ forestry::forestry(
   this->_minTreesPerFold = minTreesPerFold;
   this->_foldSize = foldSize;
 
-  if (splitRatio > 1 || splitRatio < 0) {
-    throw std::runtime_error("splitRatio shoule be between 0 and 1.");
+  if (splitRatio <= 0 || splitRatio > 1) {
+    throw std::runtime_error("splitRatio should be inside (0, 1]");
   }
 
   size_t splitSampleSize = (size_t) (getSplitRatio() * sampSize);
@@ -93,7 +93,7 @@ forestry::forestry(
     splitSampleSize < minNodeSizeToSplitSpt ||
     averageSampleSize < minNodeSizeToSplitAvg
   ) {
-    throw std::runtime_error("splitRatio too big or too small.");
+    throw std::runtime_error("splitRatio is too big or too small");
   }
 
   if (

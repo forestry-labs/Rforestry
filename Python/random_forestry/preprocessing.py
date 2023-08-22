@@ -1,4 +1,3 @@
-import math
 import sys
 import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -7,31 +6,6 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from sklearn.model_selection import LeaveOneOut
-
-
-def has_nas(x: pd.DataFrame) -> bool:
-    return x.isnull().values.any()
-
-
-def get_sampsize(forest, x: pd.DataFrame) -> int:
-    nrows, _ = x.shape
-    if forest.sampsize is None:
-        sampsize = nrows if forest.replace else math.ceil(0.632 * nrows)
-    else:
-        sampsize = forest.sampsize
-
-    # only if sample.fraction is given, update sampsize
-    if forest.sample_fraction is not None:
-        sampsize = math.ceil(forest.sample_fraction * nrows)
-
-    return sampsize
-
-
-def get_mtry(forest, x: pd.DataFrame) -> int:
-    _, ncols = x.shape
-    if forest.mtry is None:
-        return max((ncols // 3), 1)
-    return forest.mtry
 
 
 def get_feat_names(x: Union[pd.DataFrame, pd.Series, List]) -> Optional[np.ndarray]:
@@ -53,28 +27,19 @@ def find_match(arr_a: Union[np.ndarray, List], arr_b: Union[np.ndarray, List]) -
     --------------------------------------
 
     Helper Function
-    @return a nunpy array indicating the indices of first occurunces of
+    @return a numpy array indicating the indices of first occurrences of
       the elements of arr_a in arr_b
     """
 
     temp_dict = {}
 
     for index, element in enumerate(arr_b):
+        if isinstance(element, int):
+            element = float(element)
         if str(element) not in temp_dict:
             temp_dict[str(arr_b[index])] = index
 
-    return np.array([temp_dict[str(val)] for val in arr_a])
-
-
-def forest_checker(forest) -> None:
-    """
-    Checks if RandomForest object has valid pointer for C++ object.
-    @param object a RandomForest object
-    @return A message if the forest does not have a valid C++ pointer.
-    """
-
-    if (not forest.dataframe) or (not forest.forest):
-        raise ValueError("The RandomForest object has invalid ctypes pointers.")
+    return np.array([temp_dict[str(float(val)) if isinstance(val, int) else str(val)] for val in arr_a])
 
 
 # Given a dataframe with Y and Y.hat at least, fits an OLS and gives the LOO

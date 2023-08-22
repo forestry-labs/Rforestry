@@ -1,16 +1,5 @@
 #include "dataFrame.h"
 
-DataFrame::DataFrame():
-  _featureData(nullptr), _outcomeData(nullptr), _rowNumbers(nullptr),
-  _categoricalFeatureCols(nullptr), _numericalFeatureCols(nullptr),
-  _linearFeatureCols(nullptr), _numRows(0), _numColumns(0),
-  _featureWeights(nullptr), _featureWeightsVariables(nullptr),  _deepFeatureWeights(nullptr),
-  _deepFeatureWeightsVariables(nullptr), _observationWeights(nullptr),
-  _customSplitSample(nullptr), _customAvgSample(nullptr), _customExcludeSample(nullptr),
-  _monotonicConstraints(nullptr), _groupMemberships(nullptr){}
-
-DataFrame::~DataFrame(){};
-
 DataFrame::DataFrame(
   std::shared_ptr< std::vector< std::vector<double> > > featureData,
   std::unique_ptr< std::vector<double> > outcomeData,

@@ -58,7 +58,7 @@ extern "C" {
         size_t numColumns,
         unsigned int seed
     );
-    forestry* reconstructree(
+    forestry* reconstructForest(
         void* data_ptr,
         size_t ntree,
         bool replace,
@@ -92,6 +92,8 @@ extern "C" {
         int* na_left_count,
         int* na_right_count,
         int* na_default_directions,
+        int* average_counts,
+        int* split_counts,
         size_t* split_idx,
         size_t* average_idx,
         double* predict_weights,

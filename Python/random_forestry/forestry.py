@@ -1,24 +1,16 @@
-import dataclasses
 import math
-import os
-import pickle  # nosec B403 - 'Consider possible security implications associated with pickle'
+import pickle  # nosec B403  # 'Consider possible security implications associated with pickle'
 import sys
 import warnings
 from pathlib import Path
 from random import randrange
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from pydantic import (  # pylint: disable=no-name-in-module
-    ConfigDict,
-    StrictBool,
-    StrictFloat,
-    StrictInt,
-    confloat,
-    conint,
-)
-from pydantic.dataclasses import dataclass
+from deepdiff import DeepDiff
+from sklearn.base import BaseEstimator
+from sklearn.utils.validation import check_is_fitted
 
 from . import extension, preprocessing  # type: ignore
 from .processed_dta import ProcessedDta
@@ -31,25 +23,15 @@ else:
     from typing_extensions import Self
 
 
-@dataclass(config=ConfigDict(arbitrary_types_allowed=True, smart_union=True, validate_all=True))
-class RandomForest:
+class RandomForest(BaseEstimator):
     """
     The Random Forest Regressor class.
 
     :param ntree: The number of trees to grow in the forest.
     :type ntree: *int, optional, default=500*
-    :param replace: An indicator of whether sampling of the training data is done with replacement.
-    :type replace: *bool, optional, default=True*
-    :param sampsize: The size of total samples to draw for the training data. If sampling with replacement, the default
-     value is the length of the training data. If sampling without replacement, the default value is two-thirds of the
-     length of the training data.
-    :type sampsize: *int, optional*
     :param sample_fraction: If this is given, then sampsize is ignored and set to
      be ``round(len(y) * sample_fraction)`` . It must be a real number between 0 and 1.
     :type sample_fraction: *float, optional*
-    :param mtry: The number of variables randomly selected at each split point. The default value is set to be
-     one-third of the total number of features of the training data.
-    :type mtry: *int, optional*
     :param nodesize_spl: Minimum observations contained in terminal nodes.
     :type nodesize_spl: *int, optional, default=5*
     :param nodesize_avg: Minimum size of terminal nodes for averaging dataset.
@@ -65,17 +47,6 @@ class RandomForest:
     :type nodesize_strict_avg: *int, optional, default=1*
     :param min_split_gain: Minimum loss reduction to split a node further in a tree.
     :type min_split_gain: *float, optional, default=0*
-    :param max_depth: Maximum depth of a tree.
-    :type max_depth: *int, optional, default=99*
-    :param interaction_depth: All splits at or above interaction depth must be on variables
-     that are not weighting variables (as provided by the interactionVariables argument in fit).
-    :type interaction_depth: *int, optional, default=maxDepth*
-    :param splitratio: Proportion of the training data used as the splitting dataset.
-     It is a ratio between 0 and 1. If the ratio is 1 (the default), then the splitting
-     set uses the entire data, as does the averaging set---i.e., the standard Breiman RF setup.
-     If the ratio is 0, then the splitting data set is empty, and the entire dataset is used
-     for the averaging set (This is not a good usage, however, since there will be no data available for splitting).
-    :type splitratio: *double, optional, default=1*
     :param oob_honest: In this version of honesty, the out-of-bag observations for each tree
      are used as the honest (averaging) set. This setting also changes how predictions
      are constructed. When predicting for observations that are out-of-sample
@@ -95,12 +66,6 @@ class RandomForest:
      In order to not do this second bootstrap sample, the doubleBootstrap flag can
      be set to *False*.
     :type oob_honest: *bool, optional, default=False*
-    :param double_bootstrap: The doubleBootstrap flag provides the option to resample
-     with replacement from the out-of-bag observations set for each tree to construct
-     the averaging set when using OOBhonest. If this is *False*, the out-of-bag observations
-     are used as the averaging set. By default this option is *True* when running *oob_honest=True*.
-     This option increases diversity across trees.
-    :type double_bootstrap: *bool, optional, default=oob_honest*
     :param seed: Random number generator seed. The default value is a random integer.
     :type seed: *int, optional*
     :param verbose: Indicator to train the forest in verbose mode.
@@ -116,8 +81,6 @@ class RandomForest:
      values. If *False*, it will take a point based on a uniform distribution
      between two feature values.
     :type middle_split: *bool, optional, default=False*
-    :param max_obs: The max number of observations to split on. The default is the number of observations.
-    :type max_obs: *int, optional*
     :param linear: Indicator that enables Ridge penalized splits and linear aggregation
      functions in the leaf nodes. This is recommended for data with linear outcomes.
      For implementation details, see: https://arxiv.org/abs/1906.06463.
@@ -160,9 +123,6 @@ class RandomForest:
      distribution of observations on the left and right. (Default = FALSE)
     :type na_direction: *bool, optional, default=False*
     :type scale: *bool, optional, default=True*
-    :param double_tree: Indicator of whether the number of trees is doubled as averaging and splitting
-     data can be exchanged to create decorrelated trees.
-    :type double_tree: *bool, optional, default=False*
 
     :ivar processed_dta: A data structure containing information about the data after it has been preprocessed.
      *processed_dta* has the following entries:
@@ -185,7 +145,7 @@ class RandomForest:
         of how to use categorical features.
 
      * categorical_feature_mapping (*list[dict]*) - For each categorical feature, the data is encoded into
-       numeric represetation. Those encodings are saved in *categoricalFeatureMapping*. *categoricalFeatureMapping[i]*
+       numeric representation. Those encodings are saved in *categoricalFeatureMapping*. *categoricalFeatureMapping[i]*
        and has the following entries:
 
         * categorical_feature_col (*int*) - The index of the current categorical feature column.
@@ -193,7 +153,7 @@ class RandomForest:
         * unique_feature_values (*list*) - The categories of the current categorical feature.
 
         * numeric_feature_values (*numpy.array*) - The categories of the current categorical feature encoded
-          into numeric represetation.
+          into numeric representation.
 
      * feature_weights (*numpy.array of shape[ncols]*) - an array of sampling probabilities/weights for each feature
        used when subsampling *mtry* features at each node.
@@ -242,8 +202,8 @@ class RandomForest:
 
      .. _translate-label:
 
-    :ivar saved_forest: For any tree *i* in the forest, *saved_forest[i]* is a dictionary which gives access to the
-     underlying structrure of that tree. *saved_forest[i]* has the following entries:
+    :ivar saved_forest_: For any tree *i* in the forest, *saved_forest_[i]* is a dictionary which gives access to the
+     underlying structure of that tree. *saved_forest_[i]* has the following entries:
 
      * children_right (*numpy.array of shape[number of nodes in the tree,]*) - For a node with a given *id*,
        *children_right[id]* gives the id of the right child of that node. If leaf node, *children_right[id]* is *-1*.
@@ -265,86 +225,65 @@ class RandomForest:
        a leaf node, *values[id]* gives the prediction made by that node. Otherwise, *values[id]* is *0.0*.
 
      .. note::
-        When a *RandomForest* is initialized, *saved_forest* is set to a list of *ntree* empty dictionaries. In order to
+        When a *RandomForest* is initialized, *saved_forest_* is set to a list of *ntree* empty dictionaries. In order to
         populate those dictionaries, the :meth:`translate_tree() <random_forestry.RandomForest.translate_tree>` method
         must be used.
 
-    :vartype saved_forest: list[dict]
-    :ivar forest: A ctypes pointer to the *forestry* object in C++. It is initially set to *None* and updated only
+    :vartype saved_forest_: list[dict]
+    :ivar forest_: A ctypes pointer to the *forestry* object in C++. It is initially set to *None* and updated only
      after :meth:`fit() <forestry.RandomForest.fit>` is called.
-    :vartype forest: ctypes.c_void_p
-    :ivar dataframe: A ctypes pointer to the *DataFrame* object in C++. It is initially set to *None* and updated only
+    :vartype forest_: ctypes.c_void_p
+    :ivar dataframe_: A ctypes pointer to the *DataFrame* object in C++. It is initially set to *None* and updated only
      after :meth:`fit() <forestry.RandomForest.fit>` is called.
-    :vartype dataframe: ctypes.c_void_p
+    :vartype dataframe_: ctypes.c_void_p
 
     """
 
-    ntree: conint(gt=0, strict=True) = 500
-    replace: StrictBool = True
-    sampsize: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
-    sample_fraction: Optional[Union[conint(gt=0, strict=True), confloat(gt=0, strict=True)]] = None
-    mtry: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
-    nodesize_spl: conint(gt=0, strict=True) = 5
-    nodesize_avg: conint(gt=0, strict=True) = 5
-    nodesize_strict_spl: conint(gt=0, strict=True) = 1
-    nodesize_strict_avg: conint(gt=0, strict=True) = 1
-    min_split_gain: confloat(ge=0) = 0
-    max_depth: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
-    interaction_depth: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
-    splitratio: confloat(ge=0, le=1) = 1.0
-    oob_honest: StrictBool = False
-    double_bootstrap: Optional[StrictBool] = None  # Add a default value.
-    seed: conint(ge=0, strict=True) = randrange(1001)  # nosec B311
-    verbose: StrictBool = False
-    nthread: conint(ge=0, strict=True) = 0
-    splitrule: str = "variance"
-    middle_split: StrictBool = False
-    max_obs: Optional[conint(gt=0, strict=True)] = None  # Add a default value.
-    linear: StrictBool = False
-    min_trees_per_fold: conint(ge=0, strict=True) = 0
-    fold_size: conint(gt=0, strict=True) = 1
-    monotone_avg: StrictBool = False
-    overfit_penalty: Union[StrictInt, StrictFloat] = 1
-    scale: StrictBool = False
-    double_tree: StrictBool = False
-    na_direction: StrictBool = False
-
-    forest: Optional[pd.DataFrame] = dataclasses.field(default=None, init=False)
-    dataframe: Optional[pd.DataFrame] = dataclasses.field(default=None, init=False)
-    processed_dta: Optional[ProcessedDta] = dataclasses.field(default=None, init=False)
-    saved_forest: List[Dict] = dataclasses.field(default_factory=list, init=False)
-
-    def __post_init__(self) -> None:
-        if self.nthread > os.cpu_count():
-            raise ValueError("nthread cannot exceed total cores in the computer: " + str(os.cpu_count()))
-
-        if self.min_split_gain > 0 and not self.linear:
-            raise ValueError("min_split_gain cannot be set without setting linear to be true.")
-
-        if self.double_bootstrap is None:
-            self.double_bootstrap = self.oob_honest
-
-        if self.oob_honest and (self.splitratio != 1):
-            warnings.warn("oob_honest is set to true, so we will run OOBhonesty rather than standard honesty.")
-            self.splitratio = 1
-
-        if self.oob_honest and not self.replace:
-            warnings.warn("replace must be set to TRUE to use OOBhonesty, setting this to True now")
-            self.replace = True
-
-        if self.double_tree and self.splitratio in (0, 1):
-            warnings.warn("Trees cannot be doubled if splitratio is 1. We have set double_tree to False.")
-            self.double_tree = False
-
-        if (
-            self.interaction_depth is not None
-            and self.max_depth is not None
-            and self.interaction_depth > self.max_depth
-        ):
-            warnings.warn(
-                "interaction_depth cannot be greater than max_depth. We have set interaction_depth to max_depth."
-            )
-            self.interaction_depth = self.max_depth
+    # Arguments are validated during .fit() and .predict()
+    def __init__(
+        self,
+        *,
+        ntree: int = 500,
+        sample_fraction: Optional[Union[int, float]] = None,
+        nodesize_spl: int = 5,
+        nodesize_avg: int = 5,
+        nodesize_strict_spl: int = 1,
+        nodesize_strict_avg: int = 1,
+        min_split_gain: float = 0,
+        oob_honest: bool = False,
+        seed: int = randrange(1001),  # nosec B311
+        verbose: bool = False,
+        nthread: int = 0,
+        splitrule: str = "variance",
+        middle_split: bool = False,
+        linear: bool = False,
+        min_trees_per_fold: int = 0,
+        fold_size: int = 1,
+        monotone_avg: bool = False,
+        overfit_penalty: Union[int, float] = 1,
+        scale: bool = False,
+        na_direction: bool = False,
+    ):
+        self.ntree = ntree
+        self.sample_fraction = sample_fraction
+        self.nodesize_spl = nodesize_spl
+        self.nodesize_avg = nodesize_avg
+        self.nodesize_strict_spl = nodesize_strict_spl
+        self.nodesize_strict_avg = nodesize_strict_avg
+        self.min_split_gain = min_split_gain
+        self.oob_honest = oob_honest
+        self.seed = seed
+        self.verbose = verbose
+        self.nthread = nthread
+        self.splitrule = splitrule
+        self.middle_split = middle_split
+        self.linear = linear
+        self.min_trees_per_fold = min_trees_per_fold
+        self.fold_size = fold_size
+        self.monotone_avg = monotone_avg
+        self.overfit_penalty = overfit_penalty
+        self.scale = scale
+        self.na_direction = na_direction
 
     def _get_seed(self, seed: Optional[int]) -> int:
         if seed is None:
@@ -357,45 +296,45 @@ class RandomForest:
         # if the splitratio is 1, then we use adaptive rf and avgSampleSize is
         # equal to the total sampsize
 
-        if self.splitratio in (0, 1):
-            split_sample_size = self.sampsize
-            avg_sample_size = self.sampsize
+        if self.splitratio_ in (0, 1):
+            split_sample_size = self.sampsize_
+            avg_sample_size = self.sampsize_
         else:
-            split_sample_size = self.splitratio * self.sampsize
-            avg_sample_size = math.floor(self.sampsize - split_sample_size)
+            split_sample_size = self.splitratio_ * self.sampsize_
+            avg_sample_size = math.floor(self.sampsize_ - split_sample_size)
             split_sample_size = math.floor(split_sample_size)
 
         if self.nodesize_strict_spl > split_sample_size:
             warnings.warn(
-                "nodesizeStrictSpl cannot exceed splitting sample size. ",
-                "We have set nodesizeStrictSpl to be the maximum.",
+                "nodesizeStrictSpl cannot exceed splitting sample size. "
+                "We have set nodesizeStrictSpl to be the maximum."
             )
             self.nodesize_strict_spl = split_sample_size
 
         if self.nodesize_strict_avg > avg_sample_size:
             warnings.warn(
-                "nodesizeStrictAvg cannot exceed averaging sample size. ",
-                "We have set nodesizeStrictAvg to be the maximum.",
+                "nodesizeStrictAvg cannot exceed averaging sample size. "
+                "We have set nodesizeStrictAvg to be the maximum."
             )
             self.nodesize_strict_avg = avg_sample_size
 
-        if self.double_tree:
+        if self.double_tree_:
             if self.nodesize_strict_avg > split_sample_size:
                 warnings.warn(
-                    "nodesizeStrictAvg cannot exceed splitting sample size. ",
-                    "We have set nodesizeStrictAvg to be the maximum.",
+                    "nodesizeStrictAvg cannot exceed splitting sample size. "
+                    "We have set nodesizeStrictAvg to be the maximum."
                 )
                 self.nodesize_strict_avg = split_sample_size
             if self.nodesize_strict_spl > avg_sample_size:
                 warnings.warn(
-                    "nodesize_strict_spl cannot exceed averaging sample size. ",
-                    "We have set nodesize_strict_spl to be the maximum.",
+                    "nodesize_strict_spl cannot exceed averaging sample size. "
+                    "We have set nodesize_strict_spl to be the maximum."
                 )
                 self.nodesize_strict_spl = avg_sample_size
 
     def _get_weights_variables(self, weights: np.ndarray) -> np.ndarray:
         weights_variables = [i for i in range(weights.size) if weights[i] > max(weights) * 0.001]
-        if len(weights_variables) < self.mtry:
+        if len(weights_variables) < self.mtry_:
             raise ValueError("mtry is too large. Given the feature weights, can't select that many features.")
 
         weights_variables = np.array(weights_variables, dtype=np.ulonglong)
@@ -426,48 +365,88 @@ class RandomForest:
     @FitValidator
     def fit(
         self,
-        x: Union[pd.DataFrame, pd.Series, List],
+        X: Union[pd.DataFrame, pd.Series, List],
         y: np.ndarray,
         *,
+        interaction_depth: Optional[int] = FitValidator.DEFAULT_INTERACTION_DEPTH,
+        max_depth: Optional[int] = FitValidator.DEFAULT_MAX_DEPTH,
+        max_obs: Optional[int] = FitValidator.DEFAULT_MAX_OBS,
+        mtry: Optional[int] = FitValidator.DEFAULT_MTRY,
+        sampsize: Optional[int] = FitValidator.DEFAULT_SAMPSIZE,
+        double_bootstrap: Optional[bool] = FitValidator.DEFAULT_DOUBLE_BOOTSTRAP,
+        splitratio: Optional[float] = FitValidator.DEFAULT_SPLITRATIO,
+        replace: bool = FitValidator.DEFAULT_REPLACE,
+        double_tree: bool = FitValidator.DEFAULT_DOUBLE_TREE,
         interaction_variables: Optional[List] = None,  # pylint: disable=unused-argument
         feature_weights: Optional[np.ndarray] = None,
         deep_feature_weights: Optional[np.ndarray] = None,
         observation_weights: Optional[np.ndarray] = None,
-        lin_feats: Optional[Union[np.ndarray, List]] = None,  # Add a default value.
-        monotonic_constraints: Optional[np.ndarray] = None,  # Add a default value.
+        lin_feats: Optional[Union[np.ndarray, List]] = None,
+        monotonic_constraints: Optional[np.ndarray] = None,
         groups: Optional[pd.Series] = None,
         seed: Optional[int] = None,
-    ) -> None:
+    ) -> Self:
         """
         Trains all the trees in the forest.
 
-        :param x: The feature matrix.
-        :type x: *pandas.DataFrame, pandas.Series, numpy.ndarray, 2d list of shape [nrows, ncols]*
+        :param X: The feature matrix.
+        :type X: *pandas.DataFrame, pandas.Series, numpy.ndarray, 2d list of shape [nrows, ncols]*
         :param y: The target values.
         :type y: *array_like of shape [nrows,]*
-        :param interactionVariables: Indices of weighting variables.
-        :type interactionVariables: *array_like, optional, default=[]*
-        :param featureWeights: a list of sampling probabilities/weights for each
+        :param interaction_depth: All splits at or above interaction depth must be on variables
+         that are not weighting variables (as provided by the interactionVariables argument in fit).
+        :type interaction_depth: *int, optional, default=maxDepth*
+        :param max_depth: Maximum depth of a tree.
+        :type max_depth: *int, optional, default=99*
+        :param max_obs: The max number of observations to split on. The default is the number of observations.
+        :type max_obs: *int, optional*
+        :param mtry: The number of variables randomly selected at each split point. The default value is set to be
+         one-third of the total number of features of the training data.
+        :type mtry: *int, optional*
+        :param sampsize: The size of total samples to draw for the training data. If sampling with replacement, the default
+         value is the length of the training data. If sampling without replacement, the default value is two-thirds of the
+         length of the training data.
+        :type sampsize: *int, optional*
+        :param double_bootstrap: The doubleBootstrap flag provides the option to resample
+         with replacement from the out-of-bag observations set for each tree to construct
+         the averaging set when using OOBhonest. If this is *False*, the out-of-bag observations
+         are used as the averaging set. By default, this option is *True* when running *oob_honest=True*.
+         This option increases diversity across trees.
+        :type double_bootstrap: *bool, optional, default=oob_honest*
+        :param splitratio: Proportion of the training data used as the splitting dataset.
+         It is a ratio between 0 and 1. If the ratio is 1 (the default), then the splitting
+         set uses the entire data, as does the averaging set---i.e., the standard Breiman RF setup.
+         If the ratio is 0, then the splitting data set is empty, and the entire dataset is used
+         for the averaging set (This is not a good usage, however, since there will be no data available for splitting).
+        :type splitratio: *double, optional, default=1*
+        :param replace: An indicator of whether sampling of the training data is done with replacement.
+        :type replace: *bool, optional, default=True*
+        :param double_tree: Indicator of whether the number of trees is doubled as averaging and splitting
+         data can be exchanged to create decorrelated trees.
+        :type double_tree: *bool, optional, default=False*
+        :param feature_weights: a list of sampling probabilities/weights for each
          feature used when subsampling *mtry* features at each node above or at *interactionDepth*.
          The default is to use uniform probabilities.
-        :type featureWeights: *array_like of shape [ncols,], optional*
-        :param deepFeatureWeights: Used in place of *featureWeights* for splits below *interactionDepth*.
+        :type feature_weights: *array_like of shape [ncols,], optional*
+        :param deep_feature_weights: Used in place of *featureWeights* for splits below *interactionDepth*.
          The default is to use uniform probabilities.
-        :type deepFeatureWeights: *array_like of shape [ncols,], optional*
-        :param observationWeights: Denotes the weights for each training observation
+        :type deep_feature_weights: *array_like of shape [ncols,], optional*
+        :param interaction_variables: Indices of weighting variables.
+        :type interaction_variables: *array_like, optional, default=[]*
+        :param observation_weights: Denotes the weights for each training observation
          that determine how likely the observation is to be selected in each bootstrap sample.
          The default is to use uniform probabilities. This option is not allowed when sampling is
          done without replacement.
-        :type observationWeights: *array_like of shape [nrows,], optional*
-        :param linFeats: A list containing the indices of which features to split
+        :type observation_weights: *array_like of shape [nrows,], optional*
+        :param lin_feats: A list containing the indices of which features to split
          linearly on when using linear penalized splits (defaults to use all numerical features).
-        :type linFeats: *array_like, optional*
-        :param monotonicConstraints: Specifies monotonic relationships between the continuous
+        :type lin_feats: *array_like, optional*
+        :param monotonic_constraints: Specifies monotonic relationships between the continuous
          features and the outcome. Supplied as a list of length *ncol* with entries in
          1, 0, -1, with 1 indicating an increasing monotonic relationship, -1 indicating
          a decreasing monotonic relationship, and 0 indicating no constraint.
          Constraints supplied for categorical variable will be ignored. Defaults to all 0-s (no constraints).
-        :type monotonicConstraints: *array_like of shape [ncols,], optional*
+        :type monotonic_constraints: *array_like of shape [ncols,], optional*
         :param groups: A pandas series specifying the group membership of each training observation.
          These groups are used in the aggregation when doing out of bag predictions in
          order to predict with only trees where the entire group was not used for aggregation.
@@ -482,26 +461,18 @@ class RandomForest:
         :rtype: None
         """
 
-        # Make sure that all the parameters exist when passed to RandomForest
+        # Set parameters that depends on X, y
+        self.interaction_depth_ = interaction_depth
+        self.max_depth_ = max_depth
+        self.max_obs_ = max_obs
+        self.mtry_ = mtry
+        self.sampsize_ = sampsize
 
-        feat_names = preprocessing.get_feat_names(x)
-
-        x = (pd.DataFrame(x)).copy()
-        y = (np.array(y, dtype=np.double)).copy()
-
-        nrow, ncol = x.shape
-
-        if self.max_depth is None:
-            self.max_depth = round(nrow / 2) + 1
-
-        if self.interaction_depth is None:
-            self.interaction_depth = self.max_depth
-
-        if self.max_obs is None:
-            self.max_obs = y.size
-
-        self.sampsize = preprocessing.get_sampsize(self, x)
-        self.mtry = preprocessing.get_mtry(self, x)
+        # Set parameters that depends on existing parameters
+        self.double_bootstrap_ = double_bootstrap
+        self.splitratio_ = splitratio
+        self.replace_ = replace
+        self.double_tree_ = double_tree
 
         self._set_nodesize_strict()
 
@@ -510,8 +481,11 @@ class RandomForest:
 
         feature_weights /= np.sum(feature_weights)
         deep_feature_weights /= np.sum(deep_feature_weights)
-        if self.replace:
+        if self.replace_:
             observation_weights /= np.sum(observation_weights)
+
+        nrow, ncol = X.shape
+        self.n_features_in_ = ncol  # not used, n_features_in_ is sklearn requirement
 
         group_memberships = self._get_group_memberships(nrow, groups)
 
@@ -519,19 +493,19 @@ class RandomForest:
             processed_x,
             categorical_feature_cols,
             categorical_feature_mapping,
-        ) = preprocessing.preprocess_training(x, y)
+        ) = preprocessing.preprocess_training(X, y)
 
         if categorical_feature_cols.size != 0:
             monotonic_constraints[categorical_feature_cols] = 0
 
         col_means = col_sd = np.repeat(0.0, ncol + 1)
         if self.scale:
-            processed_x, y, col_means, col_sd = preprocessing.scale(x, y, processed_x, categorical_feature_cols)
+            processed_x, y, col_means, col_sd = preprocessing.scale(X, y, processed_x, categorical_feature_cols)
 
         # cpp linking
         processed_x.reset_index(drop=True, inplace=True)
 
-        self.dataframe: pd.DataFrame = extension.get_data(
+        self.dataframe_: pd.DataFrame = extension.get_data(
             np.ascontiguousarray(pd.concat([processed_x, pd.Series(y)], axis=1).values[:, :], np.double).ravel(),
             categorical_feature_cols,
             categorical_feature_cols.size,
@@ -552,38 +526,38 @@ class RandomForest:
             self._get_seed(seed),
         )
 
-        self.forest: pd.DataFrame = extension.train_forest(
-            self.dataframe,
+        self.forest_: pd.DataFrame = extension.train_forest(
+            self.dataframe_,
             self.ntree,
-            self.replace,
-            self.sampsize,
-            self.splitratio,
+            self.replace_,
+            self.sampsize_,
+            self.splitratio_,
             self.oob_honest,
-            self.double_bootstrap,
-            self.mtry,
+            self.double_bootstrap_,
+            self.mtry_,
             self.nodesize_spl,
             self.nodesize_avg,
             self.nodesize_strict_spl,
             self.nodesize_strict_avg,
             self.min_split_gain,
-            self.max_depth,
-            self.interaction_depth,
+            self.max_depth_,
+            self.interaction_depth_,
             self._get_seed(seed),
             self.nthread,
             self.verbose,
             self.middle_split,
-            self.max_obs,
+            self.max_obs_,
             self.min_trees_per_fold,
             self.fold_size,
-            x.isnull().values.any(),
+            X.isnull().values.any(),
             self.na_direction,
             self.linear,
             self.overfit_penalty,
-            self.double_tree,
+            self.double_tree_,
         )
 
         # Update the fields
-        self.processed_dta = ProcessedDta(
+        self.processed_dta_: ProcessedDta = ProcessedDta(
             processed_x=processed_x,
             y=y,
             categorical_feature_cols=categorical_feature_cols,
@@ -595,34 +569,36 @@ class RandomForest:
             observation_weights=observation_weights,
             monotonic_constraints=monotonic_constraints,
             linear_feature_cols=lin_feats,
-            groups=group_memberships,
+            group_memberships=group_memberships,
             col_means=col_means,
             col_sd=col_sd,
-            has_nas=x.isnull().values.any(),
+            has_nas=X.isnull().values.any(),
             n_observations=nrow,
             num_columns=ncol,
-            feat_names=feat_names,
+            feat_names=preprocessing.get_feat_names(X),
         )
+        self.fitted_ = True
+        return self
 
-    def _get_test_data(self, newdata: Optional[pd.DataFrame]) -> np.ndarray:
-        if newdata is None:
-            return np.ascontiguousarray(self.processed_dta.processed_x.values[:, :], np.double).ravel()
+    def _get_test_data(self, X: Optional[pd.DataFrame]) -> np.ndarray:
+        if X is None:
+            return np.ascontiguousarray(self.processed_dta_.processed_x.values[:, :], np.double).ravel()
 
         processed_x = preprocessing.preprocess_testing(
-            newdata,
-            self.processed_dta.categorical_feature_cols,
-            self.processed_dta.categorical_feature_mapping,
+            X,
+            self.processed_dta_.categorical_feature_cols,
+            self.processed_dta_.categorical_feature_mapping,
         )
         return np.ascontiguousarray(processed_x.values[:, :], np.double).ravel()
 
-    def _get_n_preds(self, newdata: Optional[pd.DataFrame]) -> int:
-        if newdata is None:
-            return self.processed_dta.n_observations
+    def _get_n_preds(self, X: Optional[pd.DataFrame]) -> int:
+        if X is None:
+            return self.processed_dta_.n_observations
 
         processed_x = preprocessing.preprocess_testing(
-            newdata,
-            self.processed_dta.categorical_feature_cols,
-            self.processed_dta.categorical_feature_mapping,
+            X,
+            self.processed_dta_.categorical_feature_cols,
+            self.processed_dta_.categorical_feature_mapping,
         )
         return len(processed_x.index)
 
@@ -631,41 +607,41 @@ class RandomForest:
     ) -> Optional[Tuple[np.ndarray, np.ndarray]]:
         if include_coefficients:
             return (
-                ret_values[0] * self.processed_dta.col_sd[-1] + self.processed_dta.col_means[-1],
+                ret_values[0] * self.processed_dta_.col_sd[-1] + self.processed_dta_.col_means[-1],
                 ret_values[1],
                 ret_values[2],
             )
-        return (ret_values[0] * self.processed_dta.col_sd[-1] + self.processed_dta.col_means[-1], ret_values[1])
+        return (ret_values[0] * self.processed_dta_.col_sd[-1] + self.processed_dta_.col_means[-1], ret_values[1])
 
     def _aggregation_oob(
         self,
-        newdata: Optional[pd.DataFrame],
+        X: Optional[pd.DataFrame],
         exact: bool,
         return_weight_matrix: bool,
         training_idx: Optional[np.ndarray],
         hier_shrinkage_lambda: float,
     ) -> Optional[Tuple[np.ndarray, np.ndarray]]:
-        if newdata is not None:
+        if X is not None:
             processed_x = preprocessing.preprocess_testing(
-                newdata,
-                self.processed_dta.categorical_feature_cols,
-                self.processed_dta.categorical_feature_mapping,
+                X,
+                self.processed_dta_.categorical_feature_cols,
+                self.processed_dta_.categorical_feature_mapping,
             )
-            if len(processed_x.index) != self.processed_dta.n_observations and training_idx is None:
+            if len(processed_x.index) != self.processed_dta_.n_observations and training_idx is None:
                 raise ValueError("Attempting to do OOB predictions on a dataset which doesn't match the training data!")
-            if training_idx and len(training_idx) != len(newdata.index):
-                raise ValueError("Training Indices must be of the same length as newdata")
+            if training_idx and len(training_idx) != len(X.index):
+                raise ValueError("Training Indices must be of the same length as X")
             if self.scale:
                 processed_x = preprocessing.scale_center(
                     processed_x,
-                    self.processed_dta.categorical_feature_cols,
-                    self.processed_dta.col_means,
-                    self.processed_dta.col_sd,
+                    self.processed_dta_.categorical_feature_cols,
+                    self.processed_dta_.col_means,
+                    self.processed_dta_.col_sd,
                 )
 
         if training_idx and (
             not np.issubdtype(training_idx.dtype, np.integer)
-            or np.any((training_idx < 0) | (training_idx >= self.processed_dta.n_observations))
+            or np.any((training_idx < 0) | (training_idx >= self.processed_dta_.n_observations))
         ):
             raise ValueError(
                 "Training Indices must contain integers between 0 and the number of training observations - 1"
@@ -681,12 +657,12 @@ class RandomForest:
             hier_shrinkage = False
             lambda_shrinkage = 0
 
-        n_preds = self._get_n_preds(newdata)
-        n_weight_matrix = n_preds * self.processed_dta.n_observations if return_weight_matrix else 0
+        n_preds = self._get_n_preds(X)
+        n_weight_matrix = n_preds * self.processed_dta_.n_observations if return_weight_matrix else 0
 
         ret_values = extension.predict_oob_forest(
-            self.forest,
-            self.dataframe,
+            self.forest_,
+            self.dataframe_,
             self._get_test_data(processed_x),
             False,
             exact,
@@ -707,33 +683,33 @@ class RandomForest:
 
     def _aggregation_double_oob(
         self,
-        newdata: Optional[pd.DataFrame],
+        X: Optional[pd.DataFrame],
         exact: bool,
         return_weight_matrix: bool,
         training_idx: Optional[np.ndarray],
         hier_shrinkage_lambda: float,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        if newdata is not None:
+        if X is not None:
             processed_x = preprocessing.preprocess_testing(
-                newdata,
-                self.processed_dta.categorical_feature_cols,
-                self.processed_dta.categorical_feature_mapping,
+                X,
+                self.processed_dta_.categorical_feature_cols,
+                self.processed_dta_.categorical_feature_mapping,
             )
-            if len(processed_x.index) != self.processed_dta.n_observations and training_idx is None:
+            if len(processed_x.index) != self.processed_dta_.n_observations and training_idx is None:
                 raise ValueError("Attempting to do OOB predictions on a dataset which doesn't match the training data!")
-            if training_idx and len(training_idx) != len(newdata.index):
-                raise ValueError("Training Indices must be of the same length as newdata")
+            if training_idx and len(training_idx) != len(X.index):
+                raise ValueError("Training Indices must be of the same length as X")
             if self.scale:
                 processed_x = preprocessing.scale_center(
                     processed_x,
-                    self.processed_dta.categorical_feature_cols,
-                    self.processed_dta.col_means,
-                    self.processed_dta.col_sd,
+                    self.processed_dta_.categorical_feature_cols,
+                    self.processed_dta_.col_means,
+                    self.processed_dta_.col_sd,
                 )
 
         if training_idx and (
             not np.issubdtype(training_idx.dtype, np.integer)
-            or np.any((training_idx < 0) | (training_idx >= self.processed_dta.n_observations))
+            or np.any((training_idx < 0) | (training_idx >= self.processed_dta_.n_observations))
         ):
             raise ValueError(
                 "Training Indices must contain integers between 0 and the number of training observations - 1"
@@ -748,12 +724,12 @@ class RandomForest:
             hier_shrinkage = False
             lambda_shrinkage = 0
 
-        n_preds = self._get_n_preds(newdata)
-        n_weight_matrix = n_preds * self.processed_dta.n_observations if return_weight_matrix else 0
+        n_preds = self._get_n_preds(X)
+        n_weight_matrix = n_preds * self.processed_dta_.n_observations if return_weight_matrix else 0
 
         ret_values = extension.predict_oob_forest(
-            self.forest,
-            self.dataframe,
+            self.forest_,
+            self.dataframe_,
             self._get_test_data(processed_x),
             True,
             exact,
@@ -774,25 +750,25 @@ class RandomForest:
             return ret_values
 
     def _aggregation_coefs(
-        self, newdata: pd.DataFrame, exact: bool, seed: int, nthread: int
+        self, X: pd.DataFrame, exact: bool, seed: int, nthread: int
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         processed_x = preprocessing.preprocess_testing(
-            newdata,
-            self.processed_dta.categorical_feature_cols,
-            self.processed_dta.categorical_feature_mapping,
+            X,
+            self.processed_dta_.categorical_feature_cols,
+            self.processed_dta_.categorical_feature_mapping,
         )
 
         if self.scale:
             processed_x = preprocessing.scale_center(
                 processed_x,
-                self.processed_dta.categorical_feature_cols,
-                self.processed_dta.col_means,
-                self.processed_dta.col_sd,
+                self.processed_dta_.categorical_feature_cols,
+                self.processed_dta_.col_means,
+                self.processed_dta_.col_sd,
             )
 
         ret_values = extension.predict_forest(
-            self.forest,
-            self.dataframe,
+            self.forest_,
+            self.dataframe_,
             np.ascontiguousarray(processed_x.values[:, :], np.double).ravel(),
             seed,
             nthread,
@@ -802,9 +778,9 @@ class RandomForest:
             False,
             np.zeros(self.ntree, dtype=np.ulonglong),
             len(processed_x.index),
-            self._get_n_preds(newdata),
+            self._get_n_preds(X),
             0,
-            self.processed_dta.n_observations * (self.processed_dta.linear_feature_cols.size + 1),
+            self.processed_dta_.n_observations * (self.processed_dta_.linear_feature_cols.size + 1),
         )
 
         # If the forest was trained with scaled values we need to rescale + re center the predictions
@@ -815,7 +791,7 @@ class RandomForest:
 
     def _aggregation_fallback(
         self,
-        newdata: pd.DataFrame,
+        X: pd.DataFrame,
         exact: bool,
         seed: int,
         nthread: int,
@@ -824,16 +800,16 @@ class RandomForest:
         hier_shrinkage_lambda: float,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         processed_x = preprocessing.preprocess_testing(
-            newdata,
-            self.processed_dta.categorical_feature_cols,
-            self.processed_dta.categorical_feature_mapping,
+            X,
+            self.processed_dta_.categorical_feature_cols,
+            self.processed_dta_.categorical_feature_mapping,
         )
         if self.scale:
             processed_x = preprocessing.scale_center(
                 processed_x,
-                self.processed_dta.categorical_feature_cols,
-                self.processed_dta.col_means,
-                self.processed_dta.col_sd,
+                self.processed_dta_.categorical_feature_cols,
+                self.processed_dta_.col_means,
+                self.processed_dta_.col_sd,
             )
 
         tree_weights = np.zeros(self.ntree, dtype=np.ulonglong)
@@ -854,12 +830,12 @@ class RandomForest:
             hier_shrinkage = False
             lambda_shrinkage = 0
 
-        n_preds = self._get_n_preds(newdata)
-        n_weight_matrix = n_preds * self.processed_dta.n_observations if return_weight_matrix else 0
+        n_preds = self._get_n_preds(X)
+        n_weight_matrix = n_preds * self.processed_dta_.n_observations if return_weight_matrix else 0
 
         ret_values = extension.predict_forest(
-            self.forest,
-            self.dataframe,
+            self.forest_,
+            self.dataframe_,
             np.ascontiguousarray(processed_x.values[:, :], np.double).ravel(),
             seed,
             nthread,
@@ -885,7 +861,7 @@ class RandomForest:
     @PredictValidator
     def predict(
         self,
-        newdata: Optional[Union[pd.DataFrame, pd.Series, List]] = PredictValidator.DEFAULT_NEWDATA,
+        X: Optional[Union[pd.DataFrame, pd.Series, List]] = PredictValidator.DEFAULT_X,
         *,
         aggregation: str = PredictValidator.DEFAULT_AGGREGATION,
         seed: Optional[int] = None,
@@ -899,23 +875,23 @@ class RandomForest:
         """
         Return the prediction from the forest.
 
-        :param newdata: Testing predictors.
-        :type newdata: *pandas.DataFrame, pandas.Series, numpy.ndarray, 2d list of shape [nsamples, ncols],
+        :param X: Testing predictors.
+        :type X: *pandas.DataFrame, pandas.Series, numpy.ndarray, 2d list of shape [nsamples, ncols],
          default=None*
         :param aggregation: How the individual tree predictions are aggregated:
          'average' returns the mean of all trees in the forest; 'terminalNodes' also returns
          the weightMatrix, as well as "terminalNodes" - a matrix where
          the i-th entry of the j-th column is the index of the leaf node to which the
          i-th observation is assigned in the j-th tree; and "sparse" - a matrix
-         where the ioth entry in the j-th column is 1 if the ith observation in
-         newdata is assigned to the j-th leaf and 0 otherwise. In each tree the
+         where the i-th entry in the j-th column is 1 if the i-th observation in
+         X is assigned to the j-th leaf and 0 otherwise. In each tree the
          leaves are indexed using a depth first ordering, and, in the "sparse"
          representation, the first leaf in the second tree has column index one more than
          the number of leaves in the first tree and so on. So, for example, if the
          first tree has 5 leaves, the sixth column of the "sparse" matrix corresponds
          to the first leaf in the second tree.
          'oob' returns the out-of-bag predictions for the forest. We assume
-         that the ordering of the observations in newdata have not changed from
+         that the ordering of the observations in X have not changed from
          training. If the ordering has changed, we will get the wrong OOB indices.
          'doubleOOB' is an experimental flag, which can only be used when *OOBhonest=True*
          and *doubleBootstrap=True*. When both of these settings are on, the
@@ -957,15 +933,15 @@ class RandomForest:
         :type trees: *array_like, optional*
         :param training_idx: When doing OOB predictions with a data set that is of a different size than the
          training data, training_idx holds the indices of the training observations that should be used for
-         determining the out-of-bag set for each observation in newdata. Entries must be between 1 and the number
-         of training observations, and the length must be equal to the number of observations in newdata.
+         determining the out-of-bag set for each observation in X. Entries must be between 1 and the number
+         of training observations, and the length must be equal to the number of observations in X.
         :type training_idx: *array_like, optional*
-        :param weightMatrix: An indicator of whether or not we should also return a
+        :param return_weight_matrix: An indicator of whether we should also return a
          matrix of the weights given to each training observation when making each
          prediction. When getting the weight matrix, aggregation must be one of
          'average', 'oob', and 'doubleOOB'. his is a normal text paragraph.
-        :type weightMatrix: *bool, optional, default=False*
-        :param hier_shrinkage_lambda The shrinkage parameter to use for hierarchical shrinkage.
+        :type return_weight_matrix: *bool, optional, default=False*
+        :param hier_shrinkage_lambda: The shrinkage parameter to use for hierarchical shrinkage.
          By default, this is set to 0 (equal to zero shrinkage).
         :type hier_shrinkage_lambda: *float, optional, default=None*
         :return: An array of predicted responses.
@@ -974,7 +950,7 @@ class RandomForest:
 
         if aggregation == "oob":
             predictions, weight_matrix = self._aggregation_oob(
-                newdata,
+                X,
                 exact,
                 return_weight_matrix,
                 training_idx,
@@ -983,7 +959,7 @@ class RandomForest:
 
         elif aggregation == "doubleOOB":
             predictions, weight_matrix = self._aggregation_double_oob(
-                newdata,
+                X,
                 exact,
                 return_weight_matrix,
                 training_idx,
@@ -992,7 +968,7 @@ class RandomForest:
 
         elif aggregation == "coefs":
             predictions, weight_matrix, coefficients = self._aggregation_coefs(
-                newdata,
+                X,
                 exact,
                 self._get_seed(seed),
                 nthread,
@@ -1002,11 +978,11 @@ class RandomForest:
                 "coef": np.lib.stride_tricks.as_strided(
                     coefficients,
                     shape=(
-                        self.processed_dta.n_observations,
-                        self.processed_dta.linear_feature_cols.size + 1,
+                        self.processed_dta_.n_observations,
+                        self.processed_dta_.linear_feature_cols.size + 1,
                     ),
                     strides=(
-                        coefficients.itemsize * (self.processed_dta.linear_feature_cols.size + 1),
+                        coefficients.itemsize * (self.processed_dta_.linear_feature_cols.size + 1),
                         coefficients.itemsize,
                     ),
                 ),
@@ -1014,7 +990,7 @@ class RandomForest:
 
         else:
             predictions, weight_matrix, _ = self._aggregation_fallback(
-                newdata,
+                X,
                 exact,
                 self._get_seed(seed),
                 nthread,
@@ -1028,9 +1004,9 @@ class RandomForest:
                 "predictions": predictions,
                 "weightMatrix": np.lib.stride_tricks.as_strided(
                     weight_matrix,
-                    shape=(self._get_n_preds(newdata), self.processed_dta.n_observations),
+                    shape=(self._get_n_preds(X), self.processed_dta_.n_observations),
                     strides=(
-                        weight_matrix.itemsize * self.processed_dta.n_observations,
+                        weight_matrix.itemsize * self.processed_dta_.n_observations,
                         weight_matrix.itemsize,
                     ),
                 ),
@@ -1051,27 +1027,27 @@ class RandomForest:
 
         """
 
-        preprocessing.forest_checker(self)
+        check_is_fitted(self)
 
-        if (not self.replace) and (self.ntree * (self.processed_dta.n_observations - self.sampsize)) < 10:
+        if (not self.replace_) and (self.ntree * (self.processed_dta_.n_observations - self.sampsize)) < 10:
             if not no_warning:
                 warnings.warn("Samples are drawn without replacement and sample size is too big!")
             return None
 
         preds = self.predict(
-            newdata=None,
+            X=None,
             aggregation="oob",
             exact=True,
             hier_shrinkage_lambda=hier_shrinkage_lambda,
         )
         preds = preds[~np.isnan(preds)]
 
-        # Only calc mse on non missing predictions
+        # Only calc mse on non-missing predictions
         y_true = self.processed_dta["y"]
         y_true = y_true[~np.isnan(y_true)]
 
         if self.scale:
-            y_true = y_true * self.processed_dta.col_sd[-1] + self.processed_dta.col_means[-1]
+            y_true = y_true * self.processed_dta_.col_sd[-1] + self.processed_dta_.col_means[-1]
 
         return np.mean((y_true - preds) ** 2)
 
@@ -1085,17 +1061,17 @@ class RandomForest:
 
         """
 
-        preprocessing.forest_checker(self)
+        check_is_fitted(self)
 
-        if (not self.replace) and (self.ntree * (self.processed_dta.n_observations - self.sampsize)) < 10:
+        if (not self.replace_) and (self.ntree * (self.processed_dta_.n_observations - self.sampsize)) < 10:
             if not no_warning:
                 warnings.warn("Samples are drawn without replacement and sample size is too big!")
             return None
 
-        cpp_vi = extension.get_vi(self.forest)
+        cpp_vi = extension.get_vi(self.forest_)
 
-        result = np.empty(self.processed_dta.num_columns)
-        for i in range(self.processed_dta.num_columns):
+        result = np.empty(self.processed_dta_.num_columns)
+        for i in range(self.processed_dta_.num_columns):
             result[i] = extension.vector_get(cpp_vi, i)
 
         return result
@@ -1118,14 +1094,14 @@ class RandomForest:
         """
         from sklearn.metrics import r2_score
 
-        return r2_score(y, self.predict(newdata=X, aggregation="average"), sample_weight=sample_weight)
+        return r2_score(y, self.predict(X=X, aggregation="average"), sample_weight=sample_weight)
 
     def translate_tree(self, tree_ids: Optional[Union[int, np.ndarray]] = None) -> None:
         """
         Given a trained forest, translates the selected trees by allowing access to its underlying structure. After
-        translating tree *i*, its structure will be stored as a dictionary in :ref:`saved_forest <translate-label>`
-        and can be accessed by ``[RandomForest object].saved_forest[i]``. Check out the
-        :ref:`saved_forest <translate-label>` attribute for more details about its structure.
+        translating tree *i*, its structure will be stored as a dictionary in :ref:`saved_forest_ <translate-label>`
+        and can be accessed by ``[RandomForest object].saved_forest_[i]``. Check out the
+        :ref:`saved_forest_ <translate-label>` attribute for more details about its structure.
 
         :param tree_ids: The indices of the trees to be translated. By default, all the trees in the forest
          are translated.
@@ -1133,8 +1109,7 @@ class RandomForest:
         :rtype: None
         """
 
-        if len(self.saved_forest) == 0:
-            self.saved_forest = [{} for _ in range(self.ntree)]
+        self.saved_forest_ = [{} for _ in range(self.ntree)]
 
         if tree_ids is None:
             idx = np.arange(self.ntree)
@@ -1145,218 +1120,216 @@ class RandomForest:
                 idx = np.array(tree_ids)
 
         for cur_id in idx:
-            if self.saved_forest[cur_id]:
-                continue
-
-            num_nodes = extension.get_tree_node_count(self.forest, cur_id)
+            num_nodes = extension.get_tree_node_count(self.forest_, cur_id)
 
             # Initialize arrays to pass to C
-            split_info = np.empty(self.sampsize + 1, dtype=np.intc)
-            averaging_info = np.empty(self.sampsize + 1, dtype=np.intc)
+            split_info = np.empty(self.sampsize_ + 1, dtype=np.intc)
+            averaging_info = np.empty(self.sampsize_ + 1, dtype=np.intc)
 
-            tree_info = np.empty(num_nodes * 8 + 1, dtype=np.double)
+            tree_info = np.empty(num_nodes * 8 + 1, dtype=np.double)  # +1 is for seed, the last
 
-            extension.fill_tree_info(self.forest, cur_id, tree_info, split_info, averaging_info)
-            self.saved_forest[cur_id]["feature"] = np.empty(num_nodes, dtype=np.intc)
-            self.saved_forest[cur_id]["threshold"] = np.empty(num_nodes, dtype=np.double)
-            self.saved_forest[cur_id]["values"] = np.empty(num_nodes, dtype=np.double)
-            self.saved_forest[cur_id]["na_left_count"] = np.empty(num_nodes, dtype=np.intc)
-            self.saved_forest[cur_id]["na_right_count"] = np.empty(num_nodes, dtype=np.intc)
-            self.saved_forest[cur_id]["na_default_direction"] = np.empty(num_nodes, dtype=np.intc)
-            self.saved_forest[cur_id]["average_count"] = np.empty(num_nodes, dtype=np.intc)
-            self.saved_forest[cur_id]["split_count"] = np.empty(num_nodes, dtype=np.intc)
+            extension.fill_tree_info(self.forest_, cur_id, tree_info, split_info, averaging_info)
+            f = self.saved_forest_[cur_id]  # reference to a dict for the i-th forest
+
+            f["feature"] = np.empty(num_nodes, dtype=np.intc)
+            f["threshold"] = np.empty(num_nodes, dtype=np.double)
+            f["values"] = np.empty(num_nodes, dtype=np.double)
+            f["na_left_count"] = np.empty(num_nodes, dtype=np.intc)
+            f["na_right_count"] = np.empty(num_nodes, dtype=np.intc)
+            f["na_default_direction"] = np.empty(num_nodes, dtype=np.intc)
+            f["average_count"] = np.empty(num_nodes, dtype=np.intc)
+            f["split_count"] = np.empty(num_nodes, dtype=np.intc)
 
             for i in range(num_nodes):
-                self.saved_forest[cur_id]["feature"][i] = int(tree_info[i])
-            for i in range(num_nodes):
-                self.saved_forest[cur_id]["values"][i] = tree_info[num_nodes + i]
-            for i in range(num_nodes):
-                self.saved_forest[cur_id]["threshold"][i] = tree_info[num_nodes * 2 + i]
-                self.saved_forest[cur_id]["na_left_count"][i] = int(tree_info[num_nodes * 3 + i])
-                self.saved_forest[cur_id]["na_right_count"][i] = int(tree_info[num_nodes * 4 + i])
-                self.saved_forest[cur_id]["na_default_direction"][i] = int(tree_info[num_nodes * 5 + i])
-                self.saved_forest[cur_id]["average_count"][i] = int(tree_info[num_nodes * 6 + i])
-                self.saved_forest[cur_id]["split_count"][i] = int(tree_info[num_nodes * 7 + i])
+                f["feature"][i] = int(tree_info[i])
+                f["values"][i] = tree_info[num_nodes + i]
+                f["threshold"][i] = tree_info[num_nodes * 2 + i]
+                f["na_left_count"][i] = int(tree_info[num_nodes * 3 + i])
+                f["na_right_count"][i] = int(tree_info[num_nodes * 4 + i])
+                f["na_default_direction"][i] = int(tree_info[num_nodes * 5 + i])
+                f["average_count"][i] = int(tree_info[num_nodes * 6 + i])
+                f["split_count"][i] = int(tree_info[num_nodes * 7 + i])
 
             num_split_idx = int(split_info[0])
-            self.saved_forest[cur_id]["splitting_sample_idx"] = np.empty(num_split_idx, dtype=np.intc)
+            f["splitting_sample_idx"] = np.empty(num_split_idx, dtype=np.intc)
             for i in range(num_split_idx):
-                self.saved_forest[cur_id]["splitting_sample_idx"][i] = int(split_info[i + 1])
+                f["splitting_sample_idx"][i] = int(split_info[i + 1])
 
             num_av_idx = int(averaging_info[0])
-            self.saved_forest[cur_id]["averaging_sample_idx"] = np.empty(num_av_idx, dtype=np.intc)
+            f["averaging_sample_idx"] = np.empty(num_av_idx, dtype=np.intc)
             for i in range(num_av_idx):
-                self.saved_forest[cur_id]["averaging_sample_idx"][i] = int(averaging_info[i + 1])
+                f["averaging_sample_idx"][i] = int(averaging_info[i + 1])
 
-            self.saved_forest[cur_id]["seed"] = int(tree_info[num_nodes * 8])
+            f["seed"] = int(tree_info[num_nodes * 8])
 
-    def get_parameters(self) -> dict:
-        """
-        Get the parameters of `RandomForest`.
-
-        :return: A dictionary mapping parameter names of the `RandomForest` to their values.
-        :rtype: dict
-        """
-
-        return {
-            parameter: value
-            for parameter, value in self.__dict__.items()
-            if parameter not in ["forest", "dataframe", "processed_dta", "saved_forest", "__pydantic_initialised__"]
-        }
-
-    def set_parameters(self, **new_parameters: dict) -> Self:
-        """
-        Set the parameters of the *RandomForest*.
-
-        :param **params: Forestry parameters.
-        :type **params: *dict*
-        :return: A new *RandomForest* object with the given parameters.
-         Note: this reinitializes the *RandomForest* object,
-         so fit must be called on the new estimator.
-        :rtype: *RandomForest*
-        """
-
-        if not new_parameters:
-            return self
-
-        current_parameters = self.get_parameters()
-        for parameter in new_parameters:
-            if parameter not in current_parameters.keys():
-                raise ValueError(
-                    f"Invalid parameter {parameter} for RandomForest. Check the list of available parameters "
-                    "with `estimator.get_parameters().keys()`."
-                )
-
-        self.__init__(**{**current_parameters, **new_parameters})  # pylint: disable=unnecessary-dunder-call
         return self
 
     def __getstate__(self):
+        # Serialize C++ tree objects to Python saved_forest_ every time before returning the state
+        self.translate_tree()
         state = self.__dict__.copy()
-        del state["dataframe"]
-        del state["forest"]
+
+        # Remove pointers to C++ objects
+        for cpp_pointer_field in ["dataframe_", "forest_"]:
+            if cpp_pointer_field in state:
+                del state[cpp_pointer_field]
         return state
 
     def __setstate__(self, state: dict) -> None:
         self.__dict__ = state
-        state["dataframe"] = extension.get_data(
-            np.ascontiguousarray(
-                pd.concat(
-                    [
-                        state["processed_dta"].processed_x,
-                        pd.Series(state["processed_dta"].y),
-                    ],
-                    axis=1,
-                ).values[:, :],
-                np.double,
-            ).ravel(),
-            state["processed_dta"].categorical_feature_cols,
-            state["processed_dta"].categorical_feature_cols.size,
-            state["processed_dta"].linear_feature_cols,
-            state["processed_dta"].linear_feature_cols.size,
-            state["processed_dta"].feature_weights,
-            state["processed_dta"].feature_weights_variables,
-            state["processed_dta"].feature_weights_variables.size,
-            state["processed_dta"].deep_feature_weights,
-            state["processed_dta"].deep_feature_weights_variables,
-            state["processed_dta"].deep_feature_weights_variables.size,
-            state["processed_dta"].observation_weights,
-            state["processed_dta"].monotonic_constraints,
-            state["processed_dta"].group_memberships,
+        processed_dta_x_y = np.ascontiguousarray(
+            pd.concat(
+                [
+                    state["processed_dta_"].processed_x,
+                    pd.Series(state["processed_dta_"].y),
+                ],
+                axis=1,
+            ).values[:, :],
+            np.double,
+        ).ravel()
+
+        state["dataframe_"] = extension.get_data(
+            processed_dta_x_y,
+            state["processed_dta_"].categorical_feature_cols,
+            state["processed_dta_"].categorical_feature_cols.size,
+            state["processed_dta_"].linear_feature_cols,
+            state["processed_dta_"].linear_feature_cols.size,
+            state["processed_dta_"].feature_weights,
+            state["processed_dta_"].feature_weights_variables,
+            state["processed_dta_"].feature_weights_variables.size,
+            state["processed_dta_"].deep_feature_weights,
+            state["processed_dta_"].deep_feature_weights_variables,
+            state["processed_dta_"].deep_feature_weights_variables.size,
+            state["processed_dta_"].observation_weights,
+            state["processed_dta_"].monotonic_constraints,
+            state["processed_dta_"].group_memberships,
             state["monotone_avg"],
-            state["processed_dta"].n_observations,
-            state["processed_dta"].num_columns + 1,
+            state["processed_dta_"].n_observations,
+            state["processed_dta_"].num_columns + 1,
             state["seed"],
         )
 
-        tree_counts = np.empty(state["ntree"] * 4, dtype=np.intc)
-        total_nodes, total_leaf_nodes, total_split_idx, total_av_idx = 0, 0, 0, 0
+        tree_counts = np.empty(state["ntree"] * 3, dtype=np.intc)
+        total_num_nodes = total_split_idx = total_av_idx = 0
         for i in range(state["ntree"]):
-            tree_counts[4 * i] = state["saved_forest"][i]["threshold"].size
-            total_nodes += tree_counts[4 * i]
+            # Current forest info
+            f = state["saved_forest_"][i]
 
-            tree_counts[4 * i + 1] = state["saved_forest"][i]["splitting_sample_idx"].size
-            total_split_idx += tree_counts[4 * i + 1]
+            columns_num_nodes_size = [
+                "feature",
+                "values",
+                "threshold",
+                "na_left_count",
+                "na_right_count",
+                "na_default_direction",
+                "average_count",
+                "split_count",
+            ]
+            sizes_num_nodes = np.array([f[name].size for name in columns_num_nodes_size])
+            assert np.all(sizes_num_nodes == sizes_num_nodes[0])
+            num_nodes = sizes_num_nodes[0]
 
-            tree_counts[4 * i + 2] = state["saved_forest"][i]["averaging_sample_idx"].size
-            total_av_idx += tree_counts[4 * i + 2]
+            tree_counts[3 * i] = num_nodes
+            total_num_nodes += num_nodes
 
-            tree_counts[4 * i + 3] = state["saved_forest"][i]["values"].size
-            total_leaf_nodes += tree_counts[4 * i + 3]
+            num_split_idx = f["splitting_sample_idx"].size
+            tree_counts[3 * i + 1] = num_split_idx
+            total_split_idx += num_split_idx
 
-        features = np.empty(total_nodes + total_leaf_nodes, dtype=np.intc)
+            num_av_idx = f["averaging_sample_idx"].size
+            tree_counts[3 * i + 2] = num_av_idx
+            total_av_idx += num_av_idx
 
-        thresholds = np.empty(total_nodes, dtype=np.double)
-        na_left_counts = np.empty(total_nodes, dtype=np.intc)
-        na_right_counts = np.empty(total_nodes, dtype=np.intc)
-        na_default_direction = np.empty(total_nodes, dtype=np.intc)
+        features = np.empty(total_num_nodes, dtype=np.intc)
+
+        thresholds = np.empty(total_num_nodes, dtype=np.double)
+        na_left_counts = np.empty(total_num_nodes, dtype=np.intc)
+        na_right_counts = np.empty(total_num_nodes, dtype=np.intc)
+        na_default_direction = np.empty(total_num_nodes, dtype=np.intc)
+
+        average_counts = np.empty(total_num_nodes, dtype=np.intc)
+        split_counts = np.empty(total_num_nodes, dtype=np.intc)
 
         sample_split_idx = np.empty(total_split_idx, dtype=np.intc)
         sample_av_idx = np.empty(total_av_idx, dtype=np.intc)
 
-        predict_weights = np.empty(total_leaf_nodes, dtype=np.double)
+        predict_weights = np.empty(total_num_nodes, dtype=np.double)
         tree_seeds = np.empty(state["ntree"], dtype=np.uintc)
 
-        ind, ind_s, ind_a, ind_val, ft_val = 0, 0, 0, 0, 0
+        ind = ind_s = ind_a = 0
         for i in range(state["ntree"]):
-            for j in range(tree_counts[4 * i]):
-                thresholds[ind] = state["saved_forest"][i]["threshold"][j]
-                na_left_counts[ind] = state["saved_forest"][i]["na_left_count"][j]
-                na_right_counts[ind] = state["saved_forest"][i]["na_right_count"][j]
-                na_default_direction[ind] = state["saved_forest"][i]["na_default_direction"][j]
+            # Current forest info
+            f = state["saved_forest_"][i]
+
+            num_nodes = tree_counts[3 * i]
+            for j in range(num_nodes):
+                # for split node
+                thresholds[ind] = f["threshold"][j]
+                na_left_counts[ind] = f["na_left_count"][j]
+                na_right_counts[ind] = f["na_right_count"][j]
+                na_default_direction[ind] = f["na_default_direction"][j]
+
+                # for leaf node
+                average_counts[ind] = f["average_count"][j]
+                split_counts[ind] = f["split_count"][j]
+
+                # C++: var_ids
+                # if < 0: flag that this is a leaf node
+                # if >= 0: split node, feature == var_id - 1
+                features[ind] = f["feature"][j]
+
+                # leaf node weight or split node threshold
+                predict_weights[ind] = f["values"][j]
                 ind += 1
 
-            for j in range(tree_counts[4 * i + 1]):
-                sample_split_idx[ind_s] = state["saved_forest"][i]["splitting_sample_idx"][j]
+            num_split_idx = tree_counts[3 * i + 1]
+            for j in range(num_split_idx):
+                sample_split_idx[ind_s] = f["splitting_sample_idx"][j]
                 ind_s += 1
 
-            for j in range(tree_counts[4 * i + 2]):
-                sample_av_idx[ind_a] = state["saved_forest"][i]["averaging_sample_idx"][j]
+            num_av_idx = tree_counts[3 * i + 2]
+            for j in range(num_av_idx):
+                sample_av_idx[ind_a] = f["averaging_sample_idx"][j]
                 ind_a += 1
 
-            for j in range(tree_counts[4 * i + 3]):
-                predict_weights[ind_val] = state["saved_forest"][i]["values"][j]
-                ind_val += 1
+            tree_seeds[i] = f["seed"]
 
-            for j in range((tree_counts[4 * i] + tree_counts[4 * i + 3])):
-                features[ft_val] = state["saved_forest"][i]["feature"][j]
-                ft_val += 1
-
-            tree_seeds[i] = state["saved_forest"][i]["seed"]
-
-        state["forest"] = extension.reconstruct_tree(
-            state["dataframe"],
+        state["forest_"] = extension.reconstruct_forest(
+            state["dataframe_"],
             state["ntree"],
-            state["replace"],
-            state["sampsize"],
-            state["splitratio"],
+            state["replace_"],
+            state["sampsize_"],
+            state["splitratio_"],
             state["oob_honest"],
-            state["double_bootstrap"],
-            state["mtry"],
+            state["double_bootstrap_"],
+            state["mtry_"],
             state["nodesize_spl"],
             state["nodesize_avg"],
             state["nodesize_strict_spl"],
             state["nodesize_strict_avg"],
             state["min_split_gain"],
-            state["max_depth"],
-            state["interaction_depth"],
+            state["max_depth_"],
+            state["interaction_depth_"],
             state["seed"],
             state["nthread"],
             state["verbose"],
             state["middle_split"],
-            state["max_obs"],
+            state["max_obs_"],
             state["min_trees_per_fold"],
             state["fold_size"],
-            state["processed_dta"].has_nas,
+            state["processed_dta_"].has_nas,
             state["na_direction"],
             state["linear"],
             state["overfit_penalty"],
-            state["double_tree"],
+            state["double_tree_"],
             tree_counts,
             thresholds,
             features,
             na_left_counts,
             na_right_counts,
             na_default_direction,
+            average_counts,
+            split_counts,
             sample_split_idx,
             sample_av_idx,
             predict_weights,
@@ -1400,8 +1373,21 @@ class RandomForest:
         :return: A string containing forest in Treelite JSON format
         :rtype: str
         """
-        return extension.export_json(self.forest, self.scale, self.processed_dta.col_sd, self.processed_dta.col_means)
+        return extension.export_json(
+            self.forest_, self.scale, self.processed_dta_.col_sd, self.processed_dta_.col_means
+        )
 
     def __del__(self):
-        # Free the pointers to foretsry and dataframe
-        extension.delete_forestry(self.forest, self.dataframe)
+        # delete(nullptr) is OK in C++
+        extension.delete_forestry(getattr(self, "forest_", None), getattr(self, "dataframe_", None))
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return not bool(DeepDiff(self.__dict__, other.__dict__))
+        else:
+            return False
+
+    def _more_tags(self):
+        return {
+            "allow_nan": True,
+        }

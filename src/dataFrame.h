@@ -7,12 +7,9 @@
 #include <algorithm>
 #include <memory>
 
-class DataFrame {
+class DataFrame final { // inheritance from DataFrame is prohibited
 
 public:
-  DataFrame();
-  virtual ~DataFrame();
-
   DataFrame(
     std::shared_ptr< std::vector< std::vector<double> > > featureData,
     std::unique_ptr< std::vector<double> > outcomeData,
@@ -32,6 +29,8 @@ public:
     std::unique_ptr< std::vector<size_t> > groupMemberships,
     bool monotoneAvg
   );
+  DataFrame& operator=(DataFrame& o) = delete;
+  ~DataFrame() = default;
 
   double getPoint(size_t rowIndex, size_t colIndex);
 

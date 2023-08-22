@@ -11,21 +11,15 @@ from random_forestry import RandomForest
 
 @pytest.fixture
 def forest1():
-    forest = RandomForest(seed=432432)
-
     X, y = get_data()
-
-    forest.fit(X, y)
-    return forest
+    return RandomForest(seed=432432).fit(X, y)
 
 
 @pytest.fixture
 def forest2():
     X, y = get_data()
-
-    forest = RandomForest(seed=432432, ntree=10, replace=False, sampsize=len(y), mtry=X.shape[1])
-    forest.fit(X, y)
-    return forest
+    forest = RandomForest(seed=432432, ntree=10)
+    return forest.fit(X, y, replace=False, sampsize=len(y), mtry=X.shape[1])
 
 
 def test_lambda0_predictions(forest1: RandomForest):
@@ -50,12 +44,12 @@ def test_small_tree_shrinkage():
     X = df.loc[:, df.columns == "sepal width (cm)"]
     y = df["sepal length (cm)"]
 
-    forest = RandomForest(seed=432432, ntree=1, max_depth=1, scale=False)
-    forest.fit(X, y)
+    forest = RandomForest(seed=432432, ntree=1, scale=False)
+    forest.fit(X, y, max_depth=1)
     forest.translate_tree()
 
     # classify training data
-    fdata = forest.saved_forest[0]
+    fdata = forest.saved_forest_[0]
     expectedPredictions = np.zeros(X.shape[0])
     for i in range(len(expectedPredictions)):
         if X.iloc[i, 0] < fdata["threshold"][0]:

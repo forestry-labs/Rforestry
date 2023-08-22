@@ -86,7 +86,7 @@ void *get_data_wrapper(
     );
 }
 
-forestry *reconstructree_wrapper(
+forestry *reconstructForestWrapper(
     void *data_ptr,
     size_t ntree,
     bool replace,
@@ -120,12 +120,14 @@ forestry *reconstructree_wrapper(
     py::array_t<int> na_left_count,
     py::array_t<int> na_right_count,
     py::array_t<int> na_default_directions,
+    py::array_t<int> average_counts,
+    py::array_t<int> split_counts,
     py::array_t<size_t> split_idx,
     py::array_t<size_t> average_idx,
     py::array_t<double> predict_weights,
     py::array_t<unsigned int> tree_seeds
 ) {
-    return reconstructree(data_ptr,
+    return reconstructForest(data_ptr,
         ntree,
         replace,
         sampSize,
@@ -158,6 +160,8 @@ forestry *reconstructree_wrapper(
         static_cast<int *>(na_left_count.request().ptr),
         static_cast<int *>(na_right_count.request().ptr),
         static_cast<int *>(na_default_directions.request().ptr),
+        static_cast<int *>(average_counts.request().ptr),
+        static_cast<int *>(split_counts.request().ptr),
         static_cast<size_t *>(split_idx.request().ptr),
         static_cast<size_t *>(average_idx.request().ptr),
         static_cast<double *>(predict_weights.request().ptr),
@@ -361,10 +365,8 @@ PYBIND11_MODULE(extension, m)
 
         Some other explanation about the getTreeLeafNodeCount function.
     )pbdoc");
-    m.def("reconstruct_tree", &reconstructree_wrapper, py::return_value_policy::reference, R"pbdoc(
-        Some help text here
-
-        Some other explanation about the reconstructree function.
+    m.def("reconstruct_forest", &reconstructForestWrapper, py::return_value_policy::reference, R"pbdoc(
+        Create C++ forestry object
     )pbdoc");
     m.def("delete_forestry", &delete_forestry, R"pbdoc(
         Some help text here
