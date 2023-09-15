@@ -153,11 +153,13 @@ class RandomForest:
     :param scale: A parameter which indicates whether or not we want to scale and center
      the covariates and outcome before doing the regression. This can help with
      stability, so the default is *True*.
-    :param na_direction: Sets a default direction for missing values in each split
-     node during training. It test placing all missing values to the left and
-     right, then selects the direction that minimizes loss. If no missing values
-     exist, then a default direction is randomly selected in proportion to the
-     distribution of observations on the left and right. (Default = FALSE)
+    :param na_direction: Sets a deterministic direction at each split point for
+     observations with a missing value for the splitting feature. It selects the
+     direction that minimizes loss, comparing sending all missing values in the
+     training data to the left or to the right. If there are no missing values
+     in the training data at a given split, the direction is determined by a
+     random draw based on the distribution of observations on the left and
+     right.
     :type na_direction: *bool, optional, default=False*
     :type scale: *bool, optional, default=True*
     :param double_tree: Indicator of whether the number of trees is doubled as averaging and splitting

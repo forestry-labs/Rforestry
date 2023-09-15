@@ -593,11 +593,13 @@ setClass(
 #'   between two feature values. (Default = FALSE)
 #' @param doubleTree if the number of tree is doubled as averaging and splitting
 #'   data can be exchanged to create decorrelated trees. (Default = FALSE)
-#' @param naDirection Sets a default direction for missing values in each split
-#'   node during training. It test placing all missing values to the left and
-#'   right, then selects the direction that minimizes loss. If no missing values
-#'   exist, then a default direction is randomly selected in proportion to the
-#'   distribution of observations on the left and right. (Default = FALSE)
+#' @param naDirection Sets a deterministic direction at each split point for
+#'   observations with a missing value for the splitting feature. It selects the
+#'   direction that minimizes loss, comparing sending all missing values in the
+#'   training data to the left or to the right. If there are no missing values
+#'   in the training data at a given split, the direction is determined by a
+#'   random draw based on the distribution of observations on the left and
+#'   right. (Default = FALSE)
 #' @param reuseforestry Pass in an `forestry` object which will recycle the
 #'   dataframe the old object created. It will save some space working on the
 #'   same data set.
