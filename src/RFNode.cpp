@@ -349,7 +349,7 @@ void RFNode::predict(
         double currentValue = (*xNew)[getSplitFeature()][*it];
 
         if (std::isnan(currentValue)) {
-          size_t draw;
+          int draw;
 
           // If naDirection is set to true, follow the split node's default
           // direction for NAs.
