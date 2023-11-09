@@ -1,0 +1,198 @@
+---
+title: "Rforestry Sampling Procedures"
+author: "Sam Antonyan, Theo Saarinen"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Honest Trees
+
+Training forests often results in overfitting. This can be due to the fact that the data used for creating trees is also used for making predictions. In order to avoid this, the data for each tree is divided into two disjoint subsets: *splitting set* and *averaging set*. The *splitting set* is used to partition the data at each node, and the *averaging set* is used to find the mean value in leaf nodes. Trees with this structure are called **honest**. The two versions of honesty implemented are **Standard Honesty** and **Out Of Bag Honesty**.
+
+### Standard Honesty
+
+In the standard version of honesty, the user specifies the **splitratio** hyperparameter, which is the proportion of the training dataset used as the splitting dataset. It is a ratio between 0 and 1. If **splitratio** is 1 (the default), then both the splitting set and the averaging set use the entire data. If the ratio is 0, then the splitting set is empty, and the entire dataset is used for the averaging set (this is not a good usage, however, since there will be no data available for splitting).
+
+```{r}
+
+# Example
+
+library(Rforestry)
+
+rf <- forestry(x = iris[,-1], y = iris[,1], splitratio = .75, ntree=1)
+
+plot(rf)
+
+rf <- make_savable(rf)
+cat("Splitting indices:", sort(rf@R_forest[[1]]$splittingSampleIndex), "\nSplitting set size:", length(rf@R_forest[[1]]$splittingSampleIndex), "\nAveraging indices:", sort(rf@R_forest[[1]]$averagingSampleIndex), "\nAveraging set size:", length(rf@R_forest[[1]]$averagingSampleIndex), "\n(Splitting set size) / (Averaging set size):", length(rf@R_forest[[1]]$splittingSampleIndex) / length(rf@R_forest[[1]]$averagingSampleIndex))
+
+predict(rf, newdata = iris[,-1])
+
+```
+
+
+### Out Of Bag Honesty
+
+*Out Of Bag Honesty* can be used by setting the **OOBhonest** hyperparameter to true. In this version of honesty, the training data is first sampled with replacement. In order to specify the sample size, the user can use **sampsize** and **sample.fraction** hyperparameters, where **sampsize** is the number of samples to be drawn from the training data, and **sample.fraction** is the proportion of the training data to be used for sampling. If **sample.fraction** is given, **sampsize** is ignored. By default, the entire dataset is used when sampling with replacement.
+
+Afterwards, the sampled data is used as the splitting set, and the out-of-bag observations for each tree are used as the honest (averaging) set. This setting also changes how predictions are constructed. When predicting for observations that are out-of-sample (using *predict(..., aggregation = "average")*), all the trees in the forest are used to construct predictions. When predicting for an observation that was in-sample (using *predict(..., aggregation = "oob")*), only the trees for which that observation was not in the averaging set are used. *aggregation="oob"* (out-of-bag) ensures that the outcome value for an observation is never used to construct predictions for a given observation, even when it is in sample. This property does not hold in standard honesty, which relies on an asymptotic subsampling argument. By default, when *OOBhonest = TRUE*, the out-of-bag observations for each tree are resampled with replacement, and the sampled data is used as the honest (averaging) set. This results in a third set of observations that are left out of both the splitting set and the averaging set. We call these the double out-of-bag (**doubleOOB**) observations. In order to get the predictions of only the trees in which each observation fell into this *doubleOOB* set, one can run *predict(... , aggregation = "doubleOOB")*. In order to skip this second bootstrap sample, the **doubleBootstrap** flag can be set to FALSE.
+
+```{r}
+
+# Example
+
+doubleBootstrap = TRUE
+rf <- forestry(x = iris[,-1], y = iris[,1], sample.fraction = 1, OOBhonest = TRUE, doubleBootstrap = doubleBootstrap, ntree=1)
+
+plot(rf)
+
+rf <- make_savable(rf)
+splittingIndices = sort(rf@R_forest[[1]]$splittingSampleIndex)
+oob_indices = setdiff(1:nrow(iris), unique(splittingIndices))
+averagingIndices = sort(rf@R_forest[[1]]$averagingSampleIndex)
+doubleOOBIndices = setdiff(oob_indices, unique(averagingIndices))
+
+cat("Splitting indices:", splittingIndices, "\nSplitting set size:", length(splittingIndices),
+    "\n OOB Indices (not in the splitting set):", oob_indices, "\nOOB set size:", length(oob_indices), "\nAveraging indices (sampled from the oob set):", averagingIndices, "\nAveraging set size:", length(averagingIndices), "\nDouble OOB Indices (not in the averaging set, but in the oob set):", doubleOOBIndices, "\nDouble OOB set size:", length(doubleOOBIndices))
+
+predict(rf, newdata = iris[,-1], aggregation = "doubleOOB")
+
+```
+This example demonstrates how using *doubleOOB* aggregation ensures that for each observation, only the trees for which that observation falls in the double out-of-bag set are used to make predictions. Since we have only one tree, *NaN* would be predicted for all observations which fall don't fall in the double out-of-bag set. To avoid as many NaN-s, we can simply use more trees when training the forest.
+
+In general, the splitting and averaging sets for each tree are found in the following manner:
+```{r}
+
+# Splitting and Averaging indices are found as follows:
+
+first_sample <- sample(1:nrow(iris), size = nrow(iris), replace = TRUE)
+oob_indices <- setdiff(1:150, unique(sort(first_sample)))
+
+if (doubleBootstrap == FALSE) {
+  
+  splittingIndices = first_sample
+  averagingIndices = oob_indices
+  
+} else {
+  
+  splittingIndices = first_sample
+  averagingIndices = sample(oob_indices, size = length(oob_indices), replace = TRUE)
+  
+}
+
+```
+
+## Groups
+
+Training with **groups** can be used to describe certain traits in observation data that is common in a group of datapoints. To achieve that, the training data is first divided into *G* disjoint groups. Those groups are provided by the user using the **groups** hyperparameter. Afterwards, for each tree, the groups are assigned to either the *averaging set* or the *splitting set*. Just like before, this can be done in two ways: using *Out Of Bag Honesty* (**OOBhonest = TRUE**), or by providing the *splitratio* hyperparameter. When using *Out Of Bag Honesty*, we sample through the list of groups with replacement, adding the in-sample groups to the splitting set, and the out-of-sample groups to the averaging set. On the other hand, if *splitratio* is provided (and *OOBhonest = FALSE*), we sample *splitratio* groups without replacement, again adding the in-sample groups to the splitting set, and the out-of-sample groups to the averaging set.
+
+Afterwards, we sample at the observation level. If we are using *Out Of Bag Honesty*, we take bootstrap samples of individual observations from each of the *splitting* and *averaging* groups. Those two samples will be used as the *splitting* and *averaging* sets of the tree. If we are not using bootstrap samples for the tree, we take two subsamples from the two groupings of the data.
+
+When predicting for a new observation, we have the following three options:
+
+1. **predict(..., aggregation = "average")**<br />
+This can be used to make predictions for observations that are out-of-sample. In this case, all the trees in the forest are used for aggregation.
+
+2. **predict(..., aggregation = "oob")**<br />
+When predicting for in-sample observations using this method, only trees for which the observation's respective group is left out of the averaging set are used for aggregation.
+
+3. **predict(..., aggregation = "doubleOOB")**<br />
+Using *double out-of-bag* aggregation to predict for in-sample observations, only trees for which the observation's respective group is left out of both the averaging set and the splitting set are used for aggregation.
+
+Note that if the number of groups is small, then the probability that you get samples from that group is high. In that case, the tree will not make any prediction for the observation. Hence, having less groups decreases the number of trees used to make predictions for an observation.
+
+```{r}
+
+# Example
+
+rf <- forestry(x = iris[,-1], 
+               y = iris[,1], 
+               OOBhonest = TRUE,
+               doubleBootstrap = TRUE,
+               groups = as.factor(rep(1:30, times=5)))
+
+
+plot(rf)
+
+rf <- make_savable(rf)
+splittingIndices = sort(rf@R_forest[[1]]$splittingSampleIndex)
+oob_indices = setdiff(1:nrow(iris), unique(splittingIndices))
+averagingIndices = sort(rf@R_forest[[1]]$averagingSampleIndex)
+doubleOOBIndices = setdiff(oob_indices, unique(averagingIndices))
+
+cat("Splitting indices:", splittingIndices, "\nSplitting set size:", length(splittingIndices),
+    "\n OOB Indices (not in the splitting set):", oob_indices, "\nOOB set size:", length(oob_indices), "\nAveraging indices (sampled from the oob set):", averagingIndices, "\nAveraging set size:", length(averagingIndices), "\nDouble OOB Indices (not in the averaging set, but in the oob set):", doubleOOBIndices, "\nDouble OOB set size:", length(doubleOOBIndices))
+
+predict(rf, newdata = iris[,-1], aggregation = "doubleOOB")
+
+
+p = predict(rf, newdata = iris[,-1], aggregation = "doubleOOB", weightMatrix = TRUE)
+
+
+```
+
+
+## Groups with Folds
+
+When growing an honest decision tree, it is often useful to keep certain groups of observations solely in either the averaging or splitting set. We can use an algorithm similar to cross validation to achieve this. 
+
+First, each group is assigned to a disjoint fold. The size of those folds can be specified by the user using the **foldSize** hyperparameter. If there are not enough groups to fill the final fold, it will be smaller. Afterwards, with each fold completely left out of sampling, we grow **minTreesPerFold** trees on the remaining data (the user specifies **minTreesPerFold**). The algorithm for growing trees is the same as the algorithm for groups described above - split the groups into splitting and averaging group sets, sample individual observations from each of the sets to get the splitting and averaging observations, and grow the tree. The predictions are also made in an identical fashion. The fold left out is the *double out-of-bag* set for the corresponding trees. 
+
+This algorithm is also benefitioa, as it allows us to grow fewer trees. In particular, we will be growing **max(folds * minTreesPerFold, ntree)** total trees. If **minTreesPerFold = 0**, we don't remove any of the folds On the other hand, if  **minTreesPerFold > 0**, we take each of the folds out, and grow **minTreesPerFold** trees with the fold left out.
+
+```{r}
+
+# Example
+
+rf <- forestry(x = iris[,-1], 
+               y = iris[,1], 
+               OOBhonest = TRUE,
+               doubleBootstrap = TRUE,
+               groups = as.factor(rep(1:30, times=5)),
+               minTreesPerFold = 10,
+               foldSize = 5)
+
+
+plot(rf)
+
+rf <- make_savable(rf)
+splittingIndices = sort(rf@R_forest[[1]]$splittingSampleIndex)
+oob_indices = setdiff(1:nrow(iris), unique(splittingIndices))
+averagingIndices = sort(rf@R_forest[[1]]$averagingSampleIndex)
+doubleOOBIndices = setdiff(oob_indices, unique(averagingIndices))
+
+cat("Splitting indices:", splittingIndices, "\nSplitting set size:", length(splittingIndices),
+    "\n OOB Indices (not in the splitting set):", oob_indices, "\nOOB set size:", length(oob_indices), "\nAveraging indices (sampled from the oob set):", averagingIndices, "\nAveraging set size:", length(averagingIndices), "\nDouble OOB Indices (not in the averaging set, but in the oob set):", doubleOOBIndices, "\nDouble OOB set size:", length(doubleOOBIndices))
+
+predict(rf, newdata = iris[,-1], aggregation = "doubleOOB")
+
+```
+## Summary
+
+In conclusion, this vignette analyzed the various sampling methods implemented in the Rforestry package. Here is a list of the main topics discussed with brief descriptions:
+
+#### Training
+
+1. **Honest Trees** - partitions the dataset into a splitting set and an averaging set
+    + **Standard Honesty** - uses *splitratio* to determine the size of the splitting set and the averaging set
+    + **Out-of-bag Honesty** - uses bootstrap samples of the original dataset for the splitting set (the sample size is determined by *sampsize* or *sample.fraction*). The out-of-bag samples are used as the averaging set
+        + **Double Out-of-bag** - uses bootstrap samples of the out-of-bag observations from the first bootstrap sample (for the splitting set) to form the averaging set
+2. **Groups**
+    + Divides the observation data into disjoint groups
+    + Partitions the groups into into a splitting set and an averaging set (using **Standard Honesty** or **Out-of-bag Honesty**, identical to the method described above).
+    + Samples at observation level from each set to form the splitting and averaging groups respectively.
+3. **Folds** - an extension of groups
+    + Assigns each group to a disjoint fold of size *foldSize*
+    + With each of the folds left out, grows *minTreesPerFold* trees on the remaining data, identical to the method described in (2)
+    
+
+#### Predicting
+
+1. **predict(..., aggregation = "average")** - all the trees in the forest are used for aggregation.
+
+2. **predict(..., aggregation = "oob")** - only trees for which the observation's respective fold/group is left out of the averaging set are used for aggregation.
+
+3. **predict(..., aggregation = "doubleOOB")** - only trees for which the observation's respective fold/group is left out of both the averaging set and the splitting set are used for aggregation.
