@@ -37,7 +37,7 @@ ridge_rf <- forestry(
   replace = FALSE,
   nodesizeStrictSpl = 10,
   mtry = 4,
-  ntree = 1000,
+  ntree = 10,
   minSplitGain = .004,
   linear = TRUE,
   overfitPenalty = 1.65,
@@ -45,6 +45,6 @@ ridge_rf <- forestry(
 
 plot(x = ridge_rf)
 plot(x = ridge_rf, tree.id = 2)
-plot(x = ridge_rf, tree.id = 1000)
+plot(x = ridge_rf, tree.id = 10)
 
 }

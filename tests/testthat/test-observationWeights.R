@@ -31,7 +31,7 @@ test_that("Tests that observationWeights for the bootstrap is working correctly"
   skip_if_not_mac()
 
   # Check the predictions from a weighted forest
-  expect_equal(sum((y_pred - y) ^ 2), 8.658285584297157, tolerance = 1e-8)
+  expect_equal(sum((y_pred - y) ^ 2), 8.6556977338637377528, tolerance = 1e-8)
 
   forest <- make_savable(forest)
 

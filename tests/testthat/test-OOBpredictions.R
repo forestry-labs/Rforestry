@@ -25,11 +25,11 @@ test_that("Tests if OOB predictions are working correctly (normal setting)", {
 
   skip_if_not_mac()
 
-  expect_equal(all.equal(getOOBpreds(forest)[1:10], c(5.092647817, 4.664031165,
-                                                      4.650426049, 4.870883947,
-                                                      5.084049999, 5.344246144,
-                                                      5.069991851, 5.060238528,
-                                                      4.766551234, 4.790776227)), TRUE)
+  expect_equal(all.equal(getOOBpreds(forest)[1:10], c(5.09195014288, 4.66466649643,
+                                                      4.65042604918, 4.87281687100,
+                                                      5.08349279822, 5.34483093904,
+                                                      5.06971226922, 5.06069487707,
+                                                      4.76761805874, 4.79213639568)), TRUE)
 })
 
 

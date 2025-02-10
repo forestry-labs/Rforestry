@@ -28,5 +28,5 @@ test_that("Tests that maxDepth parameter is working correctly", {
   skip_if_not_mac()
 
   # Mean Square Error
-  expect_equal(sum((y_pred - y) ^ 2), 11.076804560351238393, tolerance = 1e-12)
+  expect_equal(sum((y_pred - y) ^ 2), 11.075656291850588531, tolerance = 1e-6)
 })

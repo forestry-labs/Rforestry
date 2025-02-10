@@ -33,5 +33,5 @@ test_that("Tests that multilayerForestry is working correctly", {
 
   # Multilayer forestry is non deterministic, this needs to be fixed, but for
   # now test that it at least runs without crashing
-  expect_equal(sum((y_pred - y) ^ 2), 13.849777575910220, tolerance = 1e-8)
+  expect_equal(sum((y_pred - y) ^ 2), 13.841433707739128067, tolerance = 1e-8)
 })

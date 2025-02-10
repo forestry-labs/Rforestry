@@ -2,9 +2,15 @@
 // Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #include <RcppArmadillo.h>
+#include <RcppThread.h>
 #include <Rcpp.h>
 
 using namespace Rcpp;
+
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
 
 // rcpp_cppDataFrameInterface
 SEXP rcpp_cppDataFrameInterface(Rcpp::List x, Rcpp::NumericVector y, Rcpp::NumericVector catCols, Rcpp::NumericVector linCols, int numRows, int numColumns, Rcpp::NumericVector featureWeights, Rcpp::NumericVector featureWeightsVariables, Rcpp::NumericVector deepFeatureWeights, Rcpp::NumericVector deepFeatureWeightsVariables, Rcpp::NumericVector observationWeights, Rcpp::NumericVector monotonicConstraints);

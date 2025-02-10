@@ -165,7 +165,6 @@ void forestry::addTrees(size_t ntree) {
   const unsigned int see = this->getSeed();
 
   size_t splitSampleSize = (size_t) (getSplitRatio() * getSampleSize());
-  float percent_complete = 0.0;
 
   // Rcpp::Rcout << "Training Progress: " << std::endl;
   // R_FlushConsole();
@@ -913,7 +912,7 @@ std::vector<std::vector<double>>* forestry::neighborhoodImpute(
           // is inefficient because we have to iterate over the
           // vector about 1.5 times.
           double runningMax = -std::numeric_limits<double>::infinity();
-          size_t maxPosition;
+          size_t maxPosition=0;
           for(size_t l = 0; l < categoryContribution.size(); l++) {
             if(categoryContribution[l] > runningMax) {
               runningMax = categoryContribution[l];
