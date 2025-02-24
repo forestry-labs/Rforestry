@@ -1,7 +1,7 @@
 Package: Rforestry
 Type: Package
 Title: Random Forests, Linear Trees, and Gradient Boosting for Inference and Interpretability
-Version: 0.9.0.3
+Version: 0.10.1
 Author: Sören Künzel, 
         Theo Saarinen, 
         Simon Walter, 
