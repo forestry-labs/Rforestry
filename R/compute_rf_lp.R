@@ -34,7 +34,7 @@
 compute_lp <- function(object, feature.new, feature, p){
 
   # Checks and parsing:
-  if (inherits(object, "forestry")) {
+  if (!inherits(object, "forestry")) {
     stop("The object submitted is not a forestry random forest")
   }
   feature.new <- as.data.frame(feature.new)
